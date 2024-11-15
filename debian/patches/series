@@ -1,0 +1,15 @@
+api-limitations.patch
+spamc-args.patch
+grey-clean-sender.patch
+save-path.patch
+improved-default-conf.patch
+spamd-not-nobody.patch
+readme.patch
+reproducible-build.patch
+greylisting-ipv6.patch
+greylist-lint.patch
+delete-ext-html-references.patch
+remove-header-crs.patch
+sprintf_no_format_string.diff
+no_eval.patch
+encoding.patch

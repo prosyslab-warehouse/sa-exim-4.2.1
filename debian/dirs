@@ -1,0 +1,6 @@
+usr/lib/exim4/local_scan
+usr/share/doc/sa-exim/patches
+etc/exim4/conf.d/main
+usr/share/perl5/Mail/SpamAssassin/Plugin
+etc/cron.d
+usr/sbin

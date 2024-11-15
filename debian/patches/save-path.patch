@@ -1,0 +1,76 @@
+Description: Put saved mail in /var/spool/sa-exim instead of /var/spool/exim.
+
+--- sa-exim-4.2.1.orig/sa-exim.conf
++++ sa-exim-4.2.1/sa-exim.conf
+@@ -148,7 +166,7 @@ SAaddSAEheaderBeforeSA: 1
+ # SA-Exim will try to create the directory if it has the permissions to do so,
+ # check your maillog for failures (or create the directory yourself and make it
+ # writeable by exim)
+-SAtimeoutsave: /var/spool/exim/SAtimeoutsave
++SAtimeoutsave: /var/spool/sa-exim/SAtimeoutsave
+ 
+ # You can optionally save or not save messages that matched the above rule
+ SAtimeoutSavCond: 1
+@@ -160,7 +178,7 @@ SAtimeoutSavCond: 1
+ # SA-Exim will try to  create the directory if it has  the permissions to do
+ # so, check your maillog for failures  (or create the directory yourself and
+ # make it writeable by exim)
+-SAerrorsave: /var/spool/exim/SAerrorsave
++SAerrorsave: /var/spool/sa-exim/SAerrorsave
+ 
+ # You can optionally save or not save messages that matched the above rule
+ # You should not put double quotes around the expression
+@@ -219,7 +237,7 @@ SAteergrubeSavCond: 1
+ # SA-Exim will try to create the directory if it has the permissions to do so,
+ # check your maillog for failures (or create the directory yourself and make it
+ # writeable by exim)
+-SAteergrubesave: /var/spool/exim/SAteergrube
++SAteergrubesave: /var/spool/sa-exim/SAteergrube
+ 
+ # When you stall the sender, you will probably get the mail again.
+ # By default, we'll  only save messages by message ID so  that we don't save
+@@ -249,7 +267,7 @@ SAdevnullSavCond: 1
+ # SA-Exim will try to create the directory if it has the permissions to do so,
+ # check your maillog for failures (or create the directory yourself and make it
+ # writeable by exim)
+-SAdevnullsave: /var/spool/exim/SAdevnull
++SAdevnullsave: /var/spool/sa-exim/SAdevnull
+ 
+ 
+ 
+@@ -269,7 +287,7 @@ SApermrejectSavCond: 1
+ # SA-Exim will try to create the directory if it has the permissions to do so,
+ # check your maillog for failures (or create the directory yourself and make it
+ # writeable by exim)
+-SApermrejectsave: /var/spool/exim/SApermreject
++SApermrejectsave: /var/spool/sa-exim/SApermreject
+ 
+ 
+ 
+@@ -292,7 +310,7 @@ SAtemprejectSavCond: 1
+ # SA-Exim will try to create the directory if it has the permissions to do so,
+ # check your maillog for failures (or create the directory yourself and make it
+ # writeable by exim)
+-SAtemprejectsave: /var/spool/exim/SAtempreject
++SAtemprejectsave: /var/spool/sa-exim/SAtempreject
+ 
+ # When you send back a temp reject code, you will get the mail again.
+ # By default, we'll only save messages by message ID so that we don't save
+@@ -330,7 +348,7 @@ SAgreylistraisetempreject: 3.0
+ # SA-Exim will try to create the directory if it has the permissions to do so,
+ # check your maillog for failures (or create the directory yourself and make it
+ # writeable by exim)
+-SAspamacceptsave: /var/spool/exim/SAspamaccept
++SAspamacceptsave: /var/spool/sa-exim/SAspamaccept
+ 
+ # You can control which messages you want saved if you only want a subset
+ SAspamacceptSavCond: 0
+@@ -343,7 +361,7 @@ SAspamacceptSavCond: 0
+ # SA-Exim will try to create the directory if it has the permissions to do so,
+ # check your maillog for failures (or create the directory yourself and make it
+ # writeable by exim)
+-SAnotspamsave: /var/spool/exim/SAnotspam
++SAnotspamsave: /var/spool/sa-exim/SAnotspam
+ 
+ # You can control which messages you want saved if you only want a subset
+ SAnotspamSavCond: 0

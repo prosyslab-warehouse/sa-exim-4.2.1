@@ -1,0 +1,3 @@
+# If you don't run spamd as nobody (you should), change the user below
+# be smart and don't run this as root, it doesn't need those perms
+33 * * * * nobody [ -x /usr/sbin/greylistclean ] && /usr/sbin/greylistclean

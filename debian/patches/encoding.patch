@@ -1,0 +1,24 @@
+Description: Change a single letter in Acknowledgements.html from Latin-1 to UTF-8 and add a charset meta tag.
+
+--- a/Acknowledgements.html
++++ b/Acknowledgements.html
+@@ -78,7 +78,7 @@ and contributions of the following peopl
+     Made sa-exim show up in Debian. Yeah! :)
+     Major doc diffs
+ 
+-<li>Stéphane MANHES<BR>
++<li>StÃ©phane MANHES<BR>
+     Pointed out that greylisting requires X-SA-Exim-Rcpt-To:
+ 
+ <li>John Horne<BR>
+
+--- a/sa.html.template
++++ b/sa.html.template
+@@ -2,6 +2,7 @@
+ <head>
+   <title>Exim SpamAssassin at SMTP time</title>
+   <base href="http://marc.merlins.org/linux/exim/">
++  <meta charset="UTF-8">
+ </head>
+ 
+ <body>

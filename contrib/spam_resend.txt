@@ -1,0 +1,70 @@
+From: Richard Lithvall <richard@lithvall.nu>
+Date: Mon, 24 Mar 2003 16:31:40 +0100
+To: sa-exim@lists.merlins.org
+Subject: [SA-exim] Rejecting spam at SMTP but forward it to its recipients
+
+Hi list members!
+
+As the lazy postmaster I am I don't want to check every mail caught by
+SA for false positives but I really want to reject the damn spam at SMTP
+time.
+Therefore I wrote this little perl hack delegating this responsibilty to
+my users (they all use exim filters to file mail tagged as spam into a
+Junk folder).
+
+It works as follows.
+- Configure SA-exim to save rejected mail into a directory
+- Run the perl script attatched below from cron, let's say, once an hour
+(as user mail or whoever that runs your exim)
+- Inform your users how things work and their responsibilites to check
+for false positives.
+
+Please comment this script/hack and I'd really love to get some English
+spelling/grammar check as well :-)
+
+/Richard
+
+
+#!/usr/bin/perl
+$dir = "/var/spool/exim4/SApermrejectsave/new";
+foreach $mail (<$dir/*>) {
+        if(-f $mail){
+                open(MAIL, $mail);
+#               print "Working on: " . $mail . "\n";
+                $from = <MAIL>;
+                $from =~ s/^From\s(.+?)\s.+\n/$1/;
+                while (<MAIL>){
+                        if(/^X-SA-Exim-Rcpt-To:\s(.+)/){
+                                @rcpts = split(/, /, $1);
+                                last;
+                        }
+                        if(/^$/){
+                                last;
+                        }
+                }
+                open(BSMTP, "| /usr/sbin/exim4 -bS");
+                print BSMTP "mail from:<" . $from . ">\n";
+                foreach $rcpt (@rcpts){
+                        print BSMTP "rcpt to:<" . $rcpt . ">\n";
+                }
+                print BSMTP "data\n";
+                print BSMTP "X-Spam-Notice: This mail was rejected
+during reception due to heuristic check marked it as spam,\n";
+                print BSMTP "\tbut forwarded to You for checking for
+false positives.\n";
+                seek(MAIL, 0, 0);
+                $throw_away_first_from_line = <MAIL>;
+                while (<MAIL>){
+                        if(/^\./){
+                                print BSMTP ".";
+                        }
+                        print BSMTP;
+                }
+                close(MAIL);
+                print BSMTP ".\n";
+                print BSMTP "quit\n";
+                close(BSMTP);
+                unlink($mail);
+        }
+}
+

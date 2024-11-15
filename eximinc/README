@@ -1,0 +1,6 @@
+In order to faciliate building on systems that have exim installed but don't
+have the exim source, I am including includes from a recent exim version.
+While I am keeping track of which version, this shouldn't be necessary as
+the local_scan API is supposed to be upward compatible
+(technically, we should raise LOCAL_SCAN_ABI_VERSION every time Philip
+adds a feature to the API -- Marc)

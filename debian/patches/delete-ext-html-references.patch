@@ -1,0 +1,41 @@
+Description: Delete references to images not distributed, and add base URL to make links work.
+ In particular get rid of the external SourceForce logo, which caused a privacy breach.
+
+--- a/sa.html.template
++++ b/sa.html.template
+@@ -1,6 +1,7 @@
+ <html>
+ <head>
+-<title>Exim SpamAssassin at SMTP time</title>
++  <title>Exim SpamAssassin at SMTP time</title>
++  <base href="http://marc.merlins.org/linux/exim/">
+ </head>
+ 
+ <body>
+@@ -113,7 +114,7 @@ threshold (7 for instance). After that,
+     inspect all the mails you've rejected or /dev/nulled
+ </ul>
+ 
+-You can also (and probably should <img src="/gifs/people/smile.happy.gif" alt=":-)" align=TOP WIDTH=16 HEIGHT=16>) use the new greylisting support for even
++You can also (and probably should :-)) use the new greylisting support for even
+ better spam control
+ 
+ 
+@@ -205,17 +206,5 @@ prefer the use of the
+ <Acknowledgements>
+ </Acknowledgements>
+ 
+-
+-<P ALIGN="center">
+-<img src="/gifs/lines/misc/lampline.gif" alt="" WIDTH=720 HEIGHT=14>
+-</P>
+-<br>
+-<img src="/gifs/misc/wizard.gif" alt="" align="middle" WIDTH=72 HEIGHT=61>
+-<img src="/gifs/linux/damn-powered.gif" alt="" align="right" WIDTH=170 HEIGHT=29>
+-<IMG SRC="/gifs/icons/msfree.gif" ALT="[ms free site]" ALIGN="right" WIDTH=95 HEIGHT=31>
+-<a href="http://sourceforge.net"><img src="http://sourceforge.net/sflogo.php?group_id=56124&amp;type=1" width="88" height="31" border="0" align="right" alt="SourceForge.net Logo"></a>
+-<A HREF="/perso/contact.html">Email</A><BR>
+-<A HREF="/">Link to Home Page</A>
+-<P>
+ </body>
+ </html>

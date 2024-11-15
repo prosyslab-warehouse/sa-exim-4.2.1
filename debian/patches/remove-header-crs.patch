@@ -1,0 +1,32 @@
+Description: Delete carriage returns from header lines.
+ When spamd gets a message with CRLF line endings, which it will when
+ the spool file is in wire format, it will return a message with CRLF
+ line endings, including the header. We will need to strip out the
+ CRs.
+
+--- a/sa-exim.c
++++ b/sa-exim.c
+@@ -406,6 +406,11 @@ int parsemlheader(char *buffer, FILE *re
+ 	    if (buffer[strlen(buffer)-1] == '\n')
+ 	    {
+ 		buffer[strlen(buffer)-1]=0;
++		/* and any carriage return */
++		if (buffer[strlen(buffer)-1] == '\r')
++		{
++		    buffer[strlen(buffer)-1]=0;
++		}
+ 	    }
+ 	    if (SAEximDebug > 5)
+ 	    {
+@@ -1078,6 +1083,11 @@ int local_scan(volatile int fd, uschar *
+ 	if (buffer[strlen(buffer)-1] == '\n')
+ 	{
+ 	    buffer[strlen(buffer)-1]=0;
++	    /* and any carriage return */
++	    if (buffer[strlen(buffer)-1] == '\r')
++	    {
++		buffer[strlen(buffer)-1]=0;
++	    }
+ 	}
+ restart:
+ 	if (SAEximDebug > 5)

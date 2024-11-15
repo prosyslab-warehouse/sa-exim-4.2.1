@@ -1,0 +1,304 @@
+diff -urN SpamAssassin.orig/Conf.pm SpamAssassin/Conf.pm
+--- SpamAssassin.orig/Conf.pm	Mon Dec 15 22:41:57 2003
++++ SpamAssassin/Conf.pm	Sun Feb 29 17:42:58 2004
+@@ -107,6 +107,10 @@
+ use constant TYPE_URI_EVALS     => 0x0011;
+ use constant TYPE_META_TESTS    => 0x0012;
+ use constant TYPE_RBL_EVALS     => 0x0013;
++# Need to reserve a number with the SA folks (needs to be odd as it is an
++# eval test)
++use constant TYPE_RES_EVALS	=> 0x0021;
++
+ 
+ $VERSION = 'bogus';     # avoid CPAN.pm picking up version strings later
+ 
+@@ -2000,12 +2004,15 @@
+ 
+ =cut
+ 
+-    if (/^header\s+(\S+)\s+(?:rbl)?eval:(.*)$/) {
++    if (/^header\s+(\S+)\s+(?:rbl|res)?eval:(.*)$/) {
+       my ($name, $fn) = ($1, $2);
+ 
+       if ($fn =~ /^check_rbl/) {
+ 	$self->add_test ($name, $fn, TYPE_RBL_EVALS);
+       }
++      elsif (/^header\s+(\S+)\s+reseval:(.*)$/) {
++	$self->add_test ($name, $fn, TYPE_RES_EVALS);
++      }
+       else {
+ 	$self->add_test ($name, $fn, TYPE_HEAD_EVALS);
+       }
+@@ -2603,6 +2610,9 @@
+ 	}
+ 	elsif ($type == TYPE_RBL_EVALS) {
+ 	  $self->{rbl_evals}->{$name} = \@args;
++ 	}
++ 	elsif ($type == TYPE_RES_EVALS) {
++ 	  $self->{res_evals}->{$name} = \@args;
+ 	}
+ 	elsif ($type == TYPE_RAWBODY_EVALS) {
+ 	  $self->{rawbody_evals}->{$name} = \@args;
+diff -urN SpamAssassin.orig/EvalTests.pm SpamAssassin/EvalTests.pm
+--- SpamAssassin.orig/EvalTests.pm	Sat Jan 17 15:56:08 2004
++++ SpamAssassin/EvalTests.pm	Sun Aug 15 15:47:22 2004
+@@ -1941,6 +1941,234 @@
+   return $self->{habeas_swe};
+ }
+ 
++
++# This was originally written to implement greylisting in SA-Exim, although
++# I have tried to make it more general and allow for reuse in other MTAs
++# (although they will need to
++# 1) be running SA at SMTP time
++# 2) Provide the list of rcpt to and env from in some headers for SA to read
++# 3) Provide the IP of the connecting host )
++#
++# This rule should get a negative score so that if we've already seen the
++# greylisting tuplet before, we lower the score, which hopefully brings us from
++# a tempreject to an accept (at least that's how sa-exim does it)
++# -- Marc <marc_soft@merlins.org> 2004/01/19
++
++sub greylisting {
++  my ($self, $optionhash) = @_;
++
++  $optionhash  =~ s/;/,/g;
++  # This is safe, right? (users shouldn't be able to set it in their config)
++  my %option=eval $optionhash;
++  my $connectip; 
++  my $envfrom;
++  my $rcptto;
++  my @rcptto;
++  my $iswhitelisted=0;
++  my $err;
++  my $mesgid = $self->get ('Message-Id')."\n"; 
++  my $mesgidfn;
++  my $tuplet;
++
++  foreach my $reqoption (qw ( method greylistsecs dontgreylistthreshold 
++	connectiphdr envfromhdr rcpttohdr greylistnullfrom greylistfourthbyte ))
++  {
++    die "Greylist option $reqoption missing from SA config" unless (defined $option{$reqoption});
++    #warn "found $reqoption -> $option{$reqoption}\n";
++  }
++  
++  # No newlines, thank you (yes, you need this twice apparently)
++  chomp ($mesgid);
++  chomp ($mesgid);
++  # Newline in the middle mesgids, are you serious? Get rid of them here
++  $mesgid =~ s/\012/|/g;
++
++  # For stuff that we know is spam, don't greylist the host
++  # (that might help later spam with a lower score to come in)
++  if ($self->{hits} >= $option{'dontgreylistthreshold'})
++  {
++    #warn "debug: skipping greylisting on $mesgid, since score is already ".$self->{hits}." and you configured greylisting to not bother with anything above $dontcheckscore\n";
++    return 0;
++  }
++
++
++  if (not $connectip = $self->get($option{'connectiphdr'}))
++  {
++    warn "Couldn't get Connecting IP header $option{'connectiphdr'} for message $mesgid, skipping greylisting call\n";
++    return 0;
++  }
++  chomp($connectip);
++  # Clean up input (for security, if you use files/dirs)
++  $connectip =~ s#/#-#g;
++
++  # Account for a null envelope from
++  if (not defined ($envfrom = $self->get($option{'envfromhdr'})))
++  {
++    warn "Couldn't get Envelope From header $option{'envfromhdr'} for message $mesgid, skipping greylisting call\n";
++    return 0;
++  }
++  chomp($envfrom);
++  # Clean up input (for security, if you use files/dirs)
++  $envfrom =~ s#/#-#g;
++  if (not $envfrom)
++  {
++      $envfrom="<>";
++      return 0 if (not $option{'greylistnullfrom'});
++  }
++
++  if (not $rcptto = $self->get($option{'rcpttohdr'}))
++  {
++    warn "Couldn't get Rcpt To header $option{'rcpttohdr'} for message $mesgid, skipping greylisting call\n";
++    return 0;
++  }
++  chomp($rcptto);
++  # Clean up input (for security, if you use files/dirs)
++  $rcptto =~ s#/#-#g;
++  @rcptto = split(/, /, $rcptto);
++
++
++  umask 0007;
++
++  foreach $rcptto (@rcptto)
++  {
++    # The dir method is easy to fiddle with and expire records in (with
++    # a find | rm) but it's probably more I/O extensive than a real DB
++    # and suffers from directory size problems if a specific IP is sending
++    # generating tens of thousands of tuplets. -- Marc
++    # That said, I prefer formats I can easily tinker with, and not having to
++    # worry about buggy locking and so forth 
++
++    if ($option{'method'} eq "dir")
++    {
++      # The clean strings are hardcoded because it's hard to do a variable
++      # substitution within a tr (and using the eval solution is too resource
++      # expensive)
++      $envfrom =~ tr/!#%( )*+,-.0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{|}~/_/c;
++      # clean variables to run properly under -T
++      $envfrom =~ /(.+)/;
++      $envfrom = $1;
++      $rcptto  =~ tr/!#%( )*+,-.0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{|}~/_/c;
++      $rcptto =~ /(.+)/;
++      $rcptto = $1;
++
++      die "greylist option dir not passed, even though method was set to dir" unless ($option{'dir'});
++      my ($ipbyte1, $ipbyte2, $ipbyte3, $ipbyte4) = split(/\./, $connectip); 
++      my $ipdir1 = "$option{'dir'}/$ipbyte1";
++      my $ipdir2 = "$ipdir1/$ipbyte2";
++      my $ipdir3 = "$ipdir2/$ipbyte3";
++      my $ipdir4;
++      my $tupletdir;
++
++      $ipdir4 = "$ipdir3";
++      $ipdir4 .= "/$ipbyte4" if ($option{'greylistfourthbyte'});
++      $tupletdir = "$ipdir4/$envfrom";
++
++      $tuplet = "$tupletdir/$rcptto";
++  
++      # make directory whether it's there or not (faster than test and set)
++      mkdir $ipdir1;
++      mkdir $ipdir2;
++      mkdir $ipdir3;
++      mkdir $ipdir4;
++      mkdir $tupletdir;
++
++      if (not -e $tuplet) 
++      {
++        # If the tuplets aren't there, we create them and continue in
++        # case there are other ones (one of them might be whitelisted already)
++	$err="creating $tuplet";
++	open (TUPLET, ">$tuplet") or goto greylisterror;
++	print TUPLET time."\n";
++	print TUPLET "Status: Greylisted\n";
++	print TUPLET "Last Message-Id: $mesgid\n";
++	print TUPLET "Whitelisted Count: 0\n";
++	print TUPLET "Query Count: 1\n";
++	$err="closing first-written $tuplet";
++	close TUPLET or goto greylisterror;
++      }
++      else
++      {
++	my $time;
++	my $status;
++	my $whitelistcount;
++	my $querycount;
++
++	# Take into account race condition of expiring deletes and us running
++	$err="reading $tuplet";
++	open (TUPLET, "<$tuplet") or goto greylisterror;
++	$err="Couldn't read time";
++	defined ($time=<TUPLET>) or goto greylisterror;
++	chomp ($time);
++
++	$err="Couldn't read status";
++	defined ($status=<TUPLET>) or goto greylisterror;
++	chomp ($status);
++	$err="Couldn't extract Status from $status";
++	$status =~ s/^Status: // or goto greylisterror;
++
++	# Skip Mesg-Id
++	$err="Couldn't skip Mesg-Id";
++	defined ($_=<TUPLET>) or goto greylisterror;
++
++	$err="Couldn't read whitelistcount";
++	defined ($whitelistcount=<TUPLET>) or goto greylisterror;
++	chomp ($whitelistcount);
++	$err="Couldn't extract Whitelisted Count from $whitelistcount";
++	$whitelistcount =~ s/^Whitelisted Count: // or goto greylisterror;
++
++	$err="Couldn't read querycount";
++	defined ($querycount=<TUPLET>) or goto greylisterror;
++	chomp ($querycount);
++	$err="Couldn't extract Query Count from $querycount";
++	$querycount =~ s/^Query Count: // or goto greylisterror;
++	close (TUPLET);
++
++	$querycount++;
++	if ((time - $time) > $option{'greylistsecs'})
++	{
++	  $status="Whitelisted";
++	  $whitelistcount++;
++	}
++
++	$err="re-writing $tuplet";
++	open (TUPLET, ">$tuplet") or goto greylisterror;
++	print TUPLET "$time\n";
++	print TUPLET "Status: $status\n";
++	print TUPLET "Last Message-Id: $mesgid\n";
++	print TUPLET "Whitelisted Count: $whitelistcount\n";
++	print TUPLET "Query Count: $querycount\n";
++	$err="closing re-written $tuplet";
++	close TUPLET or goto greylisterror;
++
++        # We continue processing the other recipients, to setup or
++	# update their counters
++	if ($status eq "Whitelisted")
++	{
++	  $iswhitelisted=1;
++	}
++      }
++    }
++    elsif ($option{'method'} eq "file")
++    {
++      warn "codeme\n";
++    }
++    elsif ($option{'method'} eq "db")
++    {
++      warn "codeme\n";
++    }
++  }
++  
++  return $iswhitelisted;
++  
++  greylisterror:
++  warn "Reached greylisterror: $err / $!";
++  # delete tuplet since it apparently had issues but don't check for errors
++  # in case it was a permission denied on write
++  unlink ($tuplet);
++  return $iswhitelisted;
++}
++
++
+ ###########################################################################
+ # BODY TESTS:
+ ###########################################################################
+diff -urN SpamAssassin.orig/PerMsgStatus.pm SpamAssassin/PerMsgStatus.pm
+--- SpamAssassin.orig/PerMsgStatus.pm	Tue Jan 20 13:40:04 2004
++++ SpamAssassin/PerMsgStatus.pm	Sun Feb 29 19:01:19 2004
+@@ -184,6 +184,9 @@
+ 
+     # add points from Bayes, before adjusting the AWL
+     $self->{hits} += $self->{learned_hits};
++    
++    # Now, we can run rules that have to run last
++    $self->do_res_eval_tests();
+ 
+     # Do AWL tests last, since these need the score to have already been
+     # calculated
+@@ -2010,6 +2013,11 @@
+ }
+ 
+ ###########################################################################
++
++sub do_res_eval_tests {
++  my ($self) = @_;
++  $self->run_eval_tests ($self->{conf}->{res_evals}, '');
++}
+ 
+ sub do_head_eval_tests {
+   my ($self) = @_;

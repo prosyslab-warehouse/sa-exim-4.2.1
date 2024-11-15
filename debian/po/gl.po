@@ -1,0 +1,58 @@
+# Galician translation of sa-exim's debconf templates
+# This file is distributed under the same license as the sa-exim package.
+# Jacobo Tarrio <jtarrio@debian.org>, 2007.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-04-04 15:40+0200\n"
+"PO-Revision-Date: 2007-02-28 10:34+0100\n"
+"Last-Translator: Jacobo Tarrio <jtarrio@debian.org>\n"
+"Language-Team: Galician <proxecto@trasno.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+#, fuzzy
+#| msgid "Remove saved mails in spool directory?"
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr "¿Borrar as mensaxes gravadas do directorio de traballo?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+#, fuzzy
+#| msgid ""
+#| "There are some saved mails in subdirectories of /var/spool/sa-exim. "
+#| "Depending on the configuration sa-exim will save mails matching specific "
+#| "criterias (an error occured, rejected as spam, passed through although "
+#| "recognized as spam, ...) in subdirectories of /var/spool/sa-exim."
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"Hai algunhas mensaxes gravadas nos subdirectorios de /var/spool/sa-exim. "
+"Dependendo da configuración, sa-exim ha gravar as mensaxes que encaixen en "
+"determinados criterios (houbo un erro, rexeitada coma spam, pasada aínda que "
+"se recoñeceu coma spam, ...) en subdirectorios de /var/spool/sa-exim."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+
+#~ msgid ""
+#~ "You can keep them for further analysis and later remove them manually or "
+#~ "decide to delete them now."
+#~ msgstr ""
+#~ "Pode conservalas para seguir analizándoas e eliminalas despois "
+#~ "manualmente ou decidir eliminalas agora."

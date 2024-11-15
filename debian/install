@@ -1,0 +1,6 @@
+sa-exim.so     usr/lib/exim4/local_scan
+accept.so      usr/lib/exim4/local_scan
+sa-exim.conf   etc/exim4/
+debian/15_sa-exim_plugin_path etc/exim4/conf.d/main
+Greylisting.pm usr/share/perl5/Mail/SpamAssassin/Plugin/
+greylistclean  usr/share/sa-exim

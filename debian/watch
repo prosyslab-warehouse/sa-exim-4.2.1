@@ -1,0 +1,3 @@
+version=3
+
+http://marc.merlins.org/linux/exim/sa.html files/sa-exim-(\d+(?:\.\d+)*)\.tar\.gz

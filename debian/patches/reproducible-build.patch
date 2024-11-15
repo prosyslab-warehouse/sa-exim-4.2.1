@@ -1,0 +1,26 @@
+Author: Chris Lamb <lamby@debian.org>
+Last-Update: 2016-07-18
+
+--- a/Makefile
++++ b/Makefile
+@@ -48,7 +48,7 @@ accept.so: accept.c
+ 
+ ACKNOWLEDGEMENTS: Acknowledgements.html
+ 	@echo "Generating $@"
+-	@links -dump $< > $@
++	@links -dump -codepage UTF-8 $< > $@
+ 
+ CHANGELOG: Changelog.html
+ 	@echo "Generating $@"
+@@ -63,7 +63,11 @@ sa-exim_short.conf: sa-exim.conf
+ 	@cat sa-exim.conf | grep -v "^#" | tr '\012' 'ÿ' | sed "s/ÿÿÿ*/ÿÿ/g" | tr 'ÿ' '\012' >> sa-exim_short.conf
+ 
+ sa-exim.h: sa-exim.c version
++ifdef SOURCE_DATE_EPOCH
++	echo "char *version=\"`cat version` (built `LC_ALL=C date --utc -R --date=@$${SOURCE_DATE_EPOCH}`)\";" > sa-exim.h
++else
+ 	echo "char *version=\"`cat version` (built `date -R 2>/dev/null || date`)\";" > sa-exim.h
++endif
+ 
+ clean:	
+ 	@-rm -rf $(OBJECTS) $(DOCS) $(OTHERTARGETS) build-stamp configure-stamp debian/sa-exim debian/sa-exim.postrm.debhelper debian/sa-exim.substvars debian/files 2>/dev/null

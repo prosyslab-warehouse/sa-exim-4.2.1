@@ -1,0 +1,61 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+CFLAGS := $(shell dpkg-buildflags --get CFLAGS)
+CPPFLAGS := $(shell dpkg-buildflags --get CPPFLAGS)
+LDFLAGS := $(shell dpkg-buildflags --get LDFLAGS)
+
+build: build-arch
+
+build-indep:
+
+build-arch: build-stamp
+build-stamp:
+	dh_testdir
+	$(MAKE) BUILDCFLAGS='-DLOCAL_SCAN -I/usr/include/exim4 -fPIC $$(CPPFLAGS) $$(CFLAGS)' \
+	  CPPFLAGS='$(CPPFLAGS)' CFLAGS='$(CFLAGS)' LDFLAGS='-shared $(LDFLAGS)' SUFF=''
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	$(MAKE) clean
+	dh_clean
+
+# Build architecture-independent files here.
+binary-indep:
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_install
+	dh_installchangelogs Changelog.html
+	dh_installdocs
+	dh_installexamples
+	dh_installdebconf	
+	dh_installman
+	dh_installcron --name=greylistclean
+	dh_lintian
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_perl
+	dh_installdeb
+	dh_shlibdeps
+	echo "exim:Depends=exim4-localscanapi-`exim4-localscan-plugin-config --localscan-apiversion`" \
+	   >> debian/sa-exim.substvars
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build build-indep build-arch clean binary-indep binary-arch binary

@@ -1,0 +1,64 @@
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-04-04 15:40+0200\n"
+"PO-Revision-Date: 2009-03-07 20:53+0100\n"
+"Last-Translator: Miroslav Kure <kurem@debian.cz>\n"
+"Language-Team: Czech <debian-l10n-czech@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr "Odstranit maily v adresáři /var/spool/sa-exim?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"V podadresářích adresáře /var/spool/sa-exim se nachází nějaké uložené maily. "
+"Podle nastavení může sa-exim ukládat do těchto adresářů maily, které se "
+"shodují s danými kritérii (jako např. „výskyt chyby“, „odmítnuto jako spam“, "
+"„předáno dále, přestože vypadá jako spam“)."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+"Zvolte si, zda chcete maily ponechat pro další analýzu, nebo je rovnou "
+"smazat."
+
+#~ msgid ""
+#~ "You can keep them for further analysis and later remove them manually or "
+#~ "decide to delete them now."
+#~ msgstr ""
+#~ "Maily si můžete ponechat pro budoucí analýzu a poté je smazat ručně, nebo "
+#~ "je můžete smazat přímo teď."
+
+#~ msgid "Should they be removed?"
+#~ msgstr "Mají se odstranit?"

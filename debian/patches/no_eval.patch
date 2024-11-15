@@ -1,0 +1,31 @@
+--- a/Greylisting.pm
++++ b/Greylisting.pm
+@@ -21,6 +21,7 @@ package Greylisting;
+ 
+ use strict;
+ use Mail::SpamAssassin::Plugin;
++use Mail::SpamAssassin::Util qw(untaint_var);
+ use NetAddr::IP;
+ use File::Path qw(mkpath);
+ our @ISA = qw(Mail::SpamAssassin::Plugin);
+@@ -71,9 +72,17 @@ sub greylisting
+     }
+     Mail::SpamAssassin::Plugin::dbg("GREYLISTING: called function");
+ 
+-    $optionhash  =~ s/;/,/g;
+-    # This is safe, right? (users shouldn't be able to set it in their config)
+-    %option=eval $optionhash;
++    while ($optionhash =~ /(?:\G(?<!^)|^\s*\()\s*(?>(?<quot1>['"])(?<opt>.*?)\g{quot1})
++	   \s*=>\s*
++	   (?>(?<quot2>['"])(?<val>.*?)\g{quot2}
++	      |
++	      (?<val>-?(?:\d+(?:\.\d*)?|(?:\d*\.)?\d+))
++	   )\s*(?:;?\s*\)\s*$|;(?!$))/gxc) {
++	$option{$+{opt}} = untaint_var($+{val});
++    }
++    if ((pos($optionhash) // 0) < length $optionhash) {
++	die "Syntax error";
++    }
+     $self->{'rangreylisting'}=1;
+ 
+     foreach my $reqoption (qw ( method greylistsecs dontgreylistthreshold

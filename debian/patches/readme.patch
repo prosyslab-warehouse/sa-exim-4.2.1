@@ -1,0 +1,16 @@
+Description: Other additions to README file(s)
+Author: Sander Smeenk <ssmeenk@debian.org>
+Bug-Debian: http://bugs.debian.org/276080
+
+--- sa-exim-4.2.1.orig/README
++++ sa-exim-4.2.1/README
+@@ -194,6 +197,9 @@ SAEximRunCond: ${if and{ \
+                     {1}{0} \
+                 }
+ 
++PLEASE NOTE: This conditional statement must be on one line. SA-Exim's
++configfile parser does not support \-lineconitunation!! 
++
+ You may also want to look at my exim4.conf config if you haven't done so yet:
+ http://marc.merlins.org/linux/exim/#conf
+ 

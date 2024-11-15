@@ -1,0 +1,177 @@
+#!/usr/bin/perl
+# ----------------------------------------------------------------------
+# Copyright (C) 2005 Mark Lawrence <nomad@null.net>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# ----------------------------------------------------------------------
+# greylistclean - remove expired SA-Exim greylist entries from the filesystem.
+#
+# This is basically a perl implementation of the old shell commands that
+# used to be shipped with sa-exim, combined with simple syslog reporting.
+# This perl script cleans old tuplets and directories in 
+# /var/spool/sa-exim/tuplets/
+#
+# You can call this script with '-v' to see what files and
+# directories are being removed (sent to STDERR). 
+# Otherwise during normal operation there is no output.
+#
+# To use this in production you either:
+#  1. Copy this file to your cron.hourly directory if you accept the risk of
+#     running this script as root (it is uncessary)
+# or
+#  2. Copy this file to /usr/local/bin and create a crontab entry
+#     that looks something like the following (this works on Debian):
+#
+#     33 * * * * debian-exim /usr/local/bin/greylistclean
+#                ^^^^^^^^^^^
+#                (a) 
+# (a) find out under which user tuplets are created, it could be mail, exim
+#     or something else depending on your system ("debian-exim" on debian)
+#
+# Changelog
+# ---------
+# 2005-02-14 Original version. Mark Lawrence <nomad@null.net>
+# 2005-02-21 Added example cron entry comment. Mark Lawrence <nomad@null.net>
+# 2006-01-09 Added a few comments on how to run without root, inclusion in 
+#            sa-exim / verbose is -v ( -d would be debug )
+#
+# ----------------------------------------------------------------------
+use strict;
+use warnings;
+use Sys::Syslog;
+use File::Find;
+use File::stat;
+
+my $tuplet_dir   = '/var/spool/sa-exim/tuplets';
+
+my $max_grey_age = 60*60*24*2;  # seconds to keep greylisted entries (2 days)
+my $max_age      = 60*60*24*14; # seconds to keep all entries (14 days)
+
+my $tcount       = 0;           # total number of tuplets
+my $rm_tcount    = 0;           # number of tuplets removed
+
+my $dircount     = 0;           # total number of directories
+my $rm_dircount  = 0;           # number of directories removed
+
+my @empty_dirs   = ();          # list of empty directories
+
+my $verbose      = 0;
+my $now          = time();
+
+
+if (@ARGV == 1 and $ARGV[0] eq '-v') {
+    $verbose = 1;
+    print STDERR "$0 running at $now\n"
+}
+
+
+#
+# Open the reporting channel
+#
+openlog('sa-exim', 'pid,ndelay', 'mail');
+
+#
+# Process the tuplets
+#
+find({wanted => \&prune, postprocess => \&dircheck}, $tuplet_dir);
+
+syslog('info', 'Removed %d of %d greylist tuplets in %d seconds', $rm_tcount,
+       $tcount, time() - $now);
+
+#
+# Remove empty directories found by dircheck()
+#
+$now = time();
+
+foreach my $dir (@empty_dirs) {
+    rmdir $dir && $rm_dircount++;
+    $verbose && print STDERR "removed empty directory $dir\n";
+}
+
+syslog('info', 'Removed %d of %d greylist directories in %d seconds',
+        $rm_dircount, $dircount, time() - $now);
+
+closelog();
+exit;
+
+
+
+#
+# Called from File::Find::find() function with $_ set to filename/directory.
+# Search for the line 'Status: Greylisted' in files modified more than
+# $max_grey_age seconds ago and remove the files that contain it.
+# Remove any entry that is older than $max_age seconds ago.
+#
+sub prune {
+    return if (-d $_); # we don't do directories
+    $tcount++;
+
+    my $file = $_;
+    my $sb   = stat($file);
+    my $age  = $now - $sb->mtime;
+
+    #
+    # Remove all old entries (older than $max_age)
+    #
+    if ($age > $max_age) {
+        $verbose && print STDERR 'removing old entry ',
+                               "${File::Find::dir}/$file (age: ",
+                               $now - $sb->mtime, " seconds)\n";
+        unlink($file);
+        $rm_tcount++;
+        return;
+    }
+
+    #
+    # Do nothing if not old enough to expire
+    #
+    return if ($age < $max_grey_age);
+
+    #
+    # Check if this tuplet has been 'greylisted'. Use the 3 argument
+    # form of 'open', because a lot of these files have funny characters
+    # in their names.
+    #
+    if (!open(FH, '<', $file)) {
+        print STDERR "Could not open ${File::Find::name}: $!\n";
+        return;
+    }
+
+    while (my $line = <FH>) {
+        if ($line =~ /^Status: Greylisted$/) {
+            $verbose && print STDERR 'removing greylisted ',
+                                   "${File::Find::dir}/$file (age: ",
+                                   $now - $sb->mtime, " seconds)\n";
+            unlink($file);
+            $rm_tcount++;
+            last;
+        }
+    }
+
+    close FH;
+}
+
+
+#
+# Called from File::Find::find() function when all entries in a directory
+# have been processed. We check if there are any files left in the directory
+# and if not then add it to a list for later deletion
+#
+sub dircheck {
+    return if ($File::Find::dir eq $tuplet_dir); # don't check top dir.
+    $dircount++;
+
+    #
+    # Check if directory is empty and add to $empty_dirs hash
+    #
+    if (opendir(DIR, $File::Find::dir)) {
+        my $files = grep {!/^\./} readdir(DIR);
+        if ($files == 0) {
+            push(@empty_dirs, $File::Find::dir);
+        }
+        closedir(DIR);
+    }
+}

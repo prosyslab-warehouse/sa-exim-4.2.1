@@ -1,0 +1,46 @@
+# Italian (it) translation of debconf templates for sa-exim
+# Copyright (C) 2007 Free Software Foundation, Inc.
+# This file is distributed under the same license as the sa-exim package.
+# Luca Monducci <luca.mo@tiscali.it>, 2007-2009.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim 4.2.1 italian debconf templates\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-02 07:25+0100\n"
+"PO-Revision-Date: 2009-03-10 21:41+0100\n"
+"Last-Translator: Luca Monducci <luca.mo@tiscali.it>\n"
+"Language-Team: Italian <debian-l10n-italian@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr "Eliminare le mail salvate nella directory di spool di sa-exim?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"Nelle sottodirectory di /var/spool/sa-exim sono state salvate delle mail. A "
+"seconda della configurazione di sa-exim le mail vengono salvate in queste "
+"sottodirectory quando verificano determinati criteri (si è verificato un "
+"errore, rifiutata per spam, passata nonostante identificata come spam, ecc.)."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+"Scegliere se tenere queste mail per una successiva analisi oppure eliminarle "
+"adesso."

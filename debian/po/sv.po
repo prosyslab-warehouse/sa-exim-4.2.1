@@ -1,0 +1,65 @@
+# Translators, if you are not familiar with the PO format, gettext
+# documentation is worth reading, especially sections dedicated to
+# this format, e.g. by running:
+# info -n '(gettext)PO Files'
+# info -n '(gettext)Header Entry'
+# Some information specific to po-debconf are available at
+# /usr/share/doc/po-debconf/README-trans
+# or http://www.debian.org/intl/l10n/po-debconf/README-trans
+# Developers do not need to manually edit POT or PO files.
+# , fuzzy
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim 4.2-2\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-04-04 15:40+0200\n"
+"PO-Revision-Date: 2009-04-04 15:47+0200\n"
+"Last-Translator: Martin Bagge <brother@bsnet.se>\n"
+"Language-Team: Swedish <debian-l10n-swedish@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Swedish\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr "Ta bort sparad e-post i sa-exims spool-mapp?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"Det finns sparade e-postmeddelanden i undermappar till /var/spool/sa-"
+"exim. Beroende på konfigurationen kan sa-exim spara e-postmeddelanden som "
+"matchar specifika kriterier (exempelvis \"ett fel inträffade\", \"avvisat "
+"som spam\", \"genomsläppt trots att det blev spam-klassat\") i dessa "
+"kataloger."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+"Ange om du vill spara eller radera dessa meddelanden. Vill du kunna göra "
+"analyser av meddelandena senare ska de sparas nu."
+
+#~ msgid ""
+#~ "You can keep them for further analysis and later remove them manually or "
+#~ "decide to delete them now."
+#~ msgstr ""
+#~ "Du kan spara dom fÃ¶r vidare analys och senare ta bort dom manuellt eller "
+#~ "vÃ¤lja att ta bort dom nu."
+
+#~ msgid "Should they be removed?"
+#~ msgstr "Ska de tas bort?"

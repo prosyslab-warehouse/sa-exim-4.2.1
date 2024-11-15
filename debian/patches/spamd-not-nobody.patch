@@ -1,0 +1,52 @@
+Description: Don't recommend that spamd runs as nobody
+Author: Magnus Holmgren <holmgren@debian.org>
+
+--- sa-exim-4.2.1.orig/README
++++ sa-exim-4.2.1/README
+@@ -147,8 +147,11 @@ anything, you may not want to use SARewr
+ 
+ 
+ Important:
+-You want to run spamd as such: 
+-/usr/sbin/spamd -d -u nobody -H /var/spool/spamassassin/
++
++You want to run spamd as such (you have to create the spamd user
++yourself):
++
++/usr/sbin/spamd -d -u spamd -H /var/spool/spamassassin/
+ 
+ It may not work if you run spamd with -c (debian default), 
+ (you shouldn't run spamassassin as root for this purpose anyway (there
+@@ -158,7 +161,7 @@ You can edit this in /etc/default/spamas
+ /etc/sysconfig/spamassassin (redhat)
+ 
+ With SA 3.x is better, the updated syntax would look like this:
+-/usr/sbin/spamd --max-children 50 --daemonize --username=nobody --nouser-config --helper-home-dir=/var/spool/spamassassin/
++/usr/sbin/spamd --max-children 50 --daemonize --username=spamd --nouser-config --helper-home-dir=/var/spool/spamassassin/
+ 
+ 
+ 
+--- sa-exim-4.2.1.orig/README.greylisting
++++ sa-exim-4.2.1/README.greylisting
+@@ -139,8 +139,8 @@ let in" range.
+ 
+ FILE SETUP
+ ----------
+-Make very sure that uid nobody can traverse /var/spool/sa-exim and
+-create tuplets writeable by nobody (or whoever you run SA as)
++Make very sure that the user that spamd runs as can traverse and write
++to /var/spool/sa-exim.
+ 
+ Then, setup a cron job to delete tuplets that are older than 14 days for
+ whitelisted entries, and 2 days for greylisted entries (or whatever
+@@ -159,8 +159,8 @@ You should install greylistclean.cron in
+ call greylistclean and clean up greylisted entries and whitelisted entries
+ that haven't been used in a while.
+ You can optionally modify it to tweak the cleanup times.
+-Note that you need to tweak greylistclean.cron to match the user spamd runs
+-as if you aren't using the recommended --username=nobody
++Note that you may need to tweak greylistclean.cron to match the user
++spamd runs as.
+ 
+ 
+ SA PATCH (SA 2.x)

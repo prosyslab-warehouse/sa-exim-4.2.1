@@ -1,0 +1,461 @@
+sa-exim (4.2.1-20build1) hirsute; urgency=medium
+
+  * No change rebuild with fixed ownership.
+
+ -- Dimitri John Ledkov <xnox@ubuntu.com>  Tue, 16 Feb 2021 15:21:40 +0000
+
+sa-exim (4.2.1-20) unstable; urgency=medium
+
+  * Rebuild against current exim4 (Closes: #981398).
+  * Upgrade to Debhelper compat level 12.
+  * Bump Standards-Version to 4.5.1.
+  * encoding.patch: Change a single letter in Acknowledgements.html from
+    Latin-1 to UTF-8 and add a charset meta tag to sa.html.
+  * Leave out redundant Acknowledgements.html from binary package.
+  * Add Lintian override for accept.so missing dependency information
+    (it's a dummy local_scan plugin that has no dependencies). Drop unused
+    virtual-package-depends-without-real-package-depends override.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 13 Feb 2021 18:57:42 +0100
+
+sa-exim (4.2.1-19) unstable; urgency=medium
+
+  * no_eval.patch: [CVE-2019-19920] Manually parse option string in
+    Greylisting plugin, avoiding use of eval() (Closes: #946829, #947198).
+  * Bump Standards-Version to 4.5.0.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 08 Feb 2020 22:53:50 +0100
+
+sa-exim (4.2.1-18) unstable; urgency=medium
+
+  * Build with -DLOCAL_SCAN.
+  * sprintf_no_format_string.patch: With exim 4.93, string_sprintf()
+    requires at least two arguments (Closes: #943571). Thanks to Andreas
+    Metzler.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 23 Nov 2019 22:40:24 +0100
+
+sa-exim (4.2.1-17) unstable; urgency=medium
+
+  * remove-header-crs.patch (new): Strip out carriage returns from header
+    lines returned by spamd when the spool file is in wire format
+    (Probably closes: #879687; it's a bit unclear what the bug is about).
+  * api-limitation.patch: Do expansion of $primary_hostname on every call;
+    for some reason, it were getting overwritten between calls despite
+    using the permanent memory pool in accordance with Exim documentation.
+    Also start using body_linecount again since it's now part of the API,
+    but don't update it when it's zero, indicating that the spool file is
+    in wire format.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Wed, 08 May 2019 23:11:16 +0200
+
+sa-exim (4.2.1-16) unstable; urgency=low
+
+  * reproducible-build.patch: Make ACKNOWLEDGEMENTS always UTF-8 encoded
+    rather than depending on the environment.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Tue, 02 Aug 2016 23:08:31 +0200
+
+sa-exim (4.2.1-15) unstable; urgency=low
+
+  * reproducible-build.patch (new): Make build reproducible by replacing
+    the build date with the source date via ${SOURCE_DATE_EPOCH} when
+    available (Closes: #831649).  Thanks to Chris Lamb.
+  * greylisting-ipv6.patch (new): Finally add IPv6 support to the
+    greylisting plugin (Closes: #508161). Replaces grey-only-ipv4.patch.
+    Based on Robert Tasarz's patch, though I decided to do things a little
+    differently by keeping the greylistfourthbyte option for backwards
+    compatibility and not adding separate options for IPv4 and IPv6 at
+    this time. Also, with that option enabled, there will only be one
+    directory level for all the last 64 bits of an IPv6 address.
+  * delete-ext-html-references.patch (new): sa.html, which is shipped in
+    the doc directory, is a copy of the author's webpage on sa-exim from
+    his website, but without the images or linked pages, which means that
+    most of the images and links don't work, except the SourceForge logo,
+    which was fetched from sourceforge.net, causing a privacy concern. We
+    drop the images and make the non-absolute links relative to
+    http://marc.merlins.org/linux/exim/.
+  * postinst, postrm: Remove hard-coded path to invoke-rc.d.
+  * postrm: On purge, always delete the greylisting tuplets directory
+    first. Normally, /var/spool/sa-exim is then empty and can be removed
+    without asking the user, avoiding leaving unowned files (Closes:
+    #657140).
+  * greylist-lint.patch: disable greylisting plugin during spamassassin
+    --lint to avoid warnings about missing headers (Closes: #760860).
+    Thanks to Chaskiel Grundman.
+  * Use dpkg-buildflags.
+  * Bump Standards-Version to 3.9.8.
+  * Override Lintian warning about virtual exim4-localscanapi dependency
+    regardless of API version.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Fri, 22 Jul 2016 11:26:45 +0200
+
+sa-exim (4.2.1-14) unstable; urgency=low
+
+  * Updated Danish and Dutch Debconf template translations (Closes:
+    #608447, #634314).
+  * Drop the defaults for SAspamcHost and SAspamcPort, deferring to spamc
+    as to what the defaults will be if those options are not set in
+    sa-exim.conf (Closes: #506571).
+  * The "nobody" user and "nogroup" group should not own files. Therefore,
+    create /var/spool/sa-exim/tuplets with Debian-exim as owner on new
+    installations and run greylistclean as Debian-exim by default. Don't
+    change ownership of already existing /var/spool/sa-exim or
+    /var/spool/sa-exim/tuplets, since the local admin may have different
+    preferences, but give the Debian-exim group the write permission it
+    needs if /var/spool/sa-exim/tuplets is owned by "nobody" and spamd
+    runs as the calling user (Closes: #563492). Add documentation to
+    README.Debian and remove recommendation to run spamd as "nobody" from
+    README and README.greylisting.
+  * Some tidying of debian/rules and the packaging in general:
+    * Add build-arch and build-indep targets.
+    * Remove configure target; it's not a mandatory target.
+    * Remove install target and use dh_install (and dh_lintian) to put the
+      files in the staging directory.
+    * Replace /var/spool/exim with /var/spool/sa-exim in the Debian patch
+      instead of using sed.
+    * Pass SUFF='' to the makefile instead of renaming sa-exim-4.2.1.so
+      afterwards.
+    * Put our version of the crontab file in debian/greylistclean.cron.d
+      and install it using dh_installcron.
+    * Upgrade to Debhelper compat level 7. Replace dh_clean -k with
+      dh_prep.
+  * Switch to source package format 3.0 (quilt), splitting the Debian
+    patch as follows:
+    * api-limitations.patch: Changes needed because Exim exports only the 
+      symbols that are part of the official API.
+    * spamc-args.patch: Changes related to the arguments sent to spamc.
+    * grey-clean-sender.patch: Simplify the sender address so that senders
+      using VERP, SRS, etc. hopefully won't be greylisted each and every
+      time.
+    * grey-only-ipv4.patch: Bail out if a non-IPv4 address is encountered.
+    * improved-default-conf.patch: General improvements (in my opinion) of
+      the default sa-exim.conf.
+    * spamd-not-nobody.patch: Strike the recommendation that spamd run as
+      nobody.
+    * save-path.patch: Put saved mail in /var/spool/sa-exim instead of
+      /var/spool/exim.
+    * readme.patch: Other additions to the README file(s).
+  * Update Standards-Version to 3.9.2.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 25 Dec 2011 12:13:22 +0100
+
+sa-exim (4.2.1-13) unstable; urgency=low
+
+  * Updated Spanish Debconf template translation (Closes: #543310).
+    Submitted by Francisco Javier Cuadrado.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 14 Mar 2010 18:33:42 +0100
+
+sa-exim (4.2.1-12) unstable; urgency=low
+
+  * Debconf templates and debian/control reviewed by the debian-l10n-
+    english team as part of the Smith review project (Closes: #517169).
+  * Corresponding Debconf translation updates:
+    * Brazilian Portuguese from Adriano Rafael Gomes. (Closes: #519422).
+    * Czech from Miroslav Kure (Closes: #518989).
+    * Finnish from Esko Arajärvi (Closes: #518200).
+    * German from Matthias Julius (Closes: #518332).
+    * Galician from Marce Villarino. (Closes: #519487).
+    * Italian from Luca Monducci (Closes: #519177).
+    * Japanese from Hideki Yamane (Closes: #518502).
+    * Portuguese from Miguel Figueiredo. (Closes: #519002).
+    * Swedish from Martin Bagge (Closes: #518325).
+    * Vietnamese from Clytie Siddall (Closes: #517813).
+  	* French from Christian Perrier (Closes: #532560).
+    The following translations have not been updated yet: da, es, fr, nl.
+  * Add Russian Debconf translation (Closes: #529808). Thanks to Yuri Kozlov.
+  * debian/postinst: Don't call mv with a prepended path.
+  * debian/control: Put back ${misc:Depends} in Depends.
+  * debian/copyright: Point to the GPL 2.0 license text since this package
+    is licensed under that version only.
+  * Bump Standards-Version to 3.8.1.
+  * Increase Debhelper compat level to 5.
+  * Override Lintian warning about depending on exim4-localscanapi-1.1
+    without a real package as a primary alternative, since adding that
+    would defeat the purpose of not having to keep track of which version
+    of Exim provides which API/ABI version.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sat, 01 Aug 2009 13:55:21 +0200
+
+sa-exim (4.2.1-11) unstable; urgency=low
+
+  * Add Brazilian Portuguese Debconf template translation (Closes:
+    #484986). Thanks to Adriano Rafael Gomes and Felipe Augusto van de
+    Wiel.
+  * Don't ignore make clean errors.
+  * README.Debian: Remove outdated information about patching pre-3.0
+    SpamAssassin. Add information regarding auto-expire problems
+    (Closes: #461219).
+  * Stop including the SA 2.x greylisting patches altogether (due to a
+    typo only of them was included anyway).
+  * This package seems to comply with policy 3.8.0 already.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Wed, 25 Jun 2008 19:11:02 +0200
+
+sa-exim (4.2.1-10) unstable; urgency=low
+
+  * Add Finnish Debconf template translation (Closes: #472788). Thanks to
+    Esko Arajärvi.
+  * New maintainer email address.
+  * Use modern fields in debian/control (Homepage; Vcs-* fields without
+    XS-).
+  * Greylisting.pm: Bail out if a non-IPv4 address is encountered
+    (Closes: #300103, #479955).
+  * Greylisting.pm: Simplify the sender address so that senders using
+    VERP, SRS, etc. hopefully won't be greylisted each and every time
+    (Closes: #347590).
+  * Increase Standards-Version to 3.7.3; no changes.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Tue, 03 Jun 2008 23:01:19 +0200
+
+sa-exim (4.2.1-9) unstable; urgency=high
+
+  * Fix ugly bug caused by expanding $primary_hostname to the
+    non-permanent memory pool, where it will be overwritten when
+    receiveing multiple messages over the same connection (strangely
+    enough, nobody noticed).
+  * Depend on the local_scan ABI version returned by
+    exim4-localscan-plugin-config instead of all exim4-daemon-* variants
+    (Closes: #426425).
+  * debian/control: Indent Homepage: line and add XS-Vcs-* fields.
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Tue, 21 Aug 2007 22:28:01 +0200
+
+sa-exim (4.2.1-8) unstable; urgency=medium
+
+  * Urgency medium to reach testing before exim4.
+  * Since version 4.67-1, exim4 only exports those symbols that are part
+    of the official local_scan API. Unfortunately, sa-exim cheated and
+    declared three extern variables by itself:
+    · primary_hostname: Now retrieved by expanding "$primary_hostname".
+    · smtp_out: Use smtp_fflush() to get error indication.
+    · body_linecount: No workaround; $body_linecount simply won't be
+      updated. I'm working to get Exim to update it along with other
+      variables such as $message_size.
+    (Closes: #420443, #420555, #420736)
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Thu, 26 Apr 2007 16:05:26 +0200
+
+sa-exim (4.2.1-7) unstable; urgency=low
+
+  * Don't depend on debconf in postrm; if we can't prompt the user,
+    leave the spool directory alone (Closes: #417027).
+  * Do not pass a '-u' parameter to spamc if SAspamcUser expands to the
+    empty string.
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Tue,  3 Apr 2007 13:02:48 +0200
+
+sa-exim (4.2.1-6) unstable; urgency=low
+
+  * Added Portuguese Debconf template translation (Closes: #415537).
+    Thanks to Pedro Ribeiro.
+  * It is now possible to pass a username to spamc. See the SAspamcUser
+    option in sa-exim.conf.
+  * Build-depend on exim4-dev.
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Tue, 20 Mar 2007 14:25:31 +0100
+
+sa-exim (4.2.1-5) unstable; urgency=low
+
+  * Added Italian debconf template translation (Closes: #411396). Thanks
+    to Luca Monducci.
+  * Added Galician Debconf template translation (Closes: #412804).
+    Thanks to Jacobo Tarrio.
+  * Added Dutch debconf template translation (Closes: #413702). Thanks
+    to Bart Cornelis.
+  * Added debian/watch.
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Wed,  7 Mar 2007 15:46:16 +0100
+
+sa-exim (4.2.1-4) unstable; urgency=low
+
+  * Added Spanish debconf template translation (Closes: #404490). 
+    Thanks to Rudy Godoy.
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Tue,  9 Jan 2007 16:39:43 +0100
+
+sa-exim (4.2.1-3) unstable; urgency=low
+
+  * New maintainer (Closes: #352533).
+  * Updated package description to explain what SA-Exim can do that
+    exim-daemon-heavy can't, and vice versa (Closes: #378732).
+  * Added German debconf template translation (Closes: #399963).
+    Thanks to Matthias Julius.
+  * Updated Swedish debconf templates.
+  * Encourage use of ACL variables in sa-exim.conf. Also exclude ::1
+    from SA scanning.
+  * Removed unnecessary question in long description of debconf
+    template.
+  * Upgraded to Standards-Version 3.7.2. No changes needed.
+  * Moved greylistclean to /usr/share/sa-exim. If you have modified
+    the crontab file, you have to update it manually.
+  * Added Recommends: perl (needed by greylistclean, but greylistclean
+    isn't completely necessary.
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Sun,  3 Dec 2006 00:41:01 +0100
+
+sa-exim (4.2.1-2) unstable; urgency=medium
+
+  * Fixed rights on /var/spool/sa-exim. Closes: #297623
+  + Content-type bug closed by 4.2.1-1: Closes: #286069
+  * Fixed README.greylisting Closes: #325335
+  + Added cs, sv, vi translations Closes: #315995, #332363, #317869
+  + Added note about unsupported linecontinuation to README
+    sa-exim.conf already has note Closes: #276080
+  + Removed SAtempreject from default sa-exim.conf Closes: #281567  
+  
+ -- Sander Smeenk <ssmeenk@debian.org>  Mon, 27 Mar 2006 13:42:06 +0200
+  
+sa-exim (4.2.1-1) unstable; urgency=high
+
+  * SECURITY: new upstream does a better job at being safe when deleting
+    greylisting tuplets Closes: #345071
+  * Fixed sa-exim.conf typo Closes: #305890
+  * Disable former insecure /etc/cron.daily/greylistclean
+
+ -- Sander Smeenk <ssmeenk@debian.org>  Mon, 09 Jan 2006 09:01:25 -0800
+
+sa-exim (4.2-1) unstable; urgency=high
+
+  * New upstream version
+  * Ship new SA-Exim Greylisting plugin for SA 3.0 or better
+  * Ship new /etc/cron.daily/greylistclean
+  * Updated README.Debian
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Mon, 17 Dec 2005 00:14:03 -0800
+
+sa-exim (4.1-1) unstable; urgency=high
+
+  * New upstream version
+  * SECURITY: new upstream provides SA greylisting patch with shell safe
+    filenames and directories (only affected users who use the SA greylisting
+    patch _and_ an unsafe shell cron job to delete old files and directories)
+  * Updated README.debian to warn that the SA 2.4 greylisting patch is out
+    of date and unmaintained.
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Mon, 16 Aug 2004 08:32:36 -0700
+
+sa-exim (4.0-3) unstable; urgency=low
+
+  + Changed hard depend on spamc, since that's all sa-exim needs.
+    You have to choose to install spamassassin, or run spamc to
+    another host. This entry closes: #253393
+  + Documentation was assed to explain about sa-exim defaulting
+    to exim4 configured to use exim4/use_split_config. Devine
+    intervention is needed when using monolithic configs. One day
+    sa-exim might detect this and act on it?
+    This entry closes: #251755, #265820
+  + Incorrect scoring of messages due to incorrect last-Received:
+    header is now fixed by newer versions of the exim4 package.
+    Dependencies have been changed. This entry closes: #250726, #246715
+  + Updated Japanese translations of debconf templates. A typo in the
+    english templates has been fixed too. This entry closes: #252341
+
+ -- Sander Smeenk <ssmeenk@debian.org>  Wed, 15 Aug 2004 19:40:05 +0200
+ 
+sa-exim (4.0-2) unstable; urgency=low
+
+  * Clarified SA-greylisting patches in README.Debian
+    Closes: #245573
+  + Added Danish translations
+  + Added French translations
+    Closes: #238537, #239258
+
+ -- Sander Smeenk <ssmeenk@debian.org>  Sat, 24 Apr 2004 11:34:35 +0200
+
+sa-exim (4.0-1) unstable; urgency=low
+
+  * New upstream version
+  * Added new docs (README.greylisting / SA patches)
+  * Create /var/spool/sa-exim/tuplets for the new greylisting support
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Tue, 03 Mar 2004 08:52:49 -0800
+
+sa-exim (3.1-4) unstable; urgency=low
+
+  * Fixed minor packaging bugs.
+  * Debconf gettextized for translators (Closes: #237105)
+
+ -- Sander Smeenk <ssmeenk@debian.org>  Sun, 07 Mar 2004 15:38:47 +0100
+
+sa-exim (3.1-3) unstable; urgency=low
+
+  * Clean up properly on purge, asking per debconf about removing saved mails
+    in spool-directory if necessary.
+  * Update to work with exim4 running as Debian-exim (don't include
+    /var/spool/sa-exim in deb, generate it in postinst; stricter
+    dependencies).
+  * sa-exim uses spamc - Correct depends accordingly.
+
+ -- Sander Smeenk <ssmeenk@debian.org>  Sun, 22 Feb 2004 10:32:03 +0100
+
+sa-exim (3.1-2) unstable; urgency=low
+
+  * Minor updates to control suggested by Andreas Metzler
+  * Minor updates on upstream source (INSTALL / sa-exim.conf)
+  * Uploaded to Debian (Closes: #196100)
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Wed, 20 Aug 2003 09:18:42 -0700
+
+sa-exim (3.1-1) unstable; urgency=low
+
+  * Upstream update
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Tue, 19 Aug 2003 09:48:13 -0700
+
+sa-exim (3.0+cvs-20030802) unstable; urgency=low
+
+  * Updated sa-exim to cvs version
+  * Restored plugin location to /usr/lib/exim4/local_scan/
+  * Added contrib contents to docs
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Sat, 02 Aug 2003 20:57:50 -0700
+
+sa-exim (3.0+cvs-20030728) unstable; urgency=low
+
+  * Updated sa-exim to cvs version
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Mon, 28 Jul 2003 21:08:24 -0500
+
+sa-exim (3.0+cvs-1) unstable; urgency=low
+
+  * Updated sa-exim to cvs version (and new sa-exim.conf config file)
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Mon, 08 Jun 2003 23:19:11 -0700
+
+sa-exim (3.0-3) unstable; urgency=low
+
+  * Taken over from Andreas, thanks for the template
+  * Rewrote description in control
+  * Updated docs to contain all the documentation files
+  * /var/spool/sa-exim will contain the saved mails and is 770/mail.mail
+  * Do not patch sample sa-exim.conf, run sed during the install
+  * Removed ${misc:Depends} from control, my dpkg-gencontrol says it's unknown
+  * Fixes to debian/control, debian/rules and debian/copyright for policy
+    compliance and to make lintian more happy. Increased Standards-Version to
+    3.5.10. (Andreas Metzler)
+  * Add some magic to maintainerscripts, disabling the sa-exim part of exim's
+    main configuration file when sa-exim is uninstalled. (Andreas Metzler)
+
+ -- Marc MERLIN <marc_soft@merlins.org>  Mon, 26 May 2003 23:22:56 -0700
+
+sa-exim (3.0-2) unstable; urgency=low
+
+  * Small fixes
+
+ -- Andreas Metzler <ametzler@debian.org>  Fri,  2 May 2003 20:20:11 +0200
+
+sa-exim (3.0-1) unstable; urgency=low
+
+  * renamed package to sa-exim
+  * upgrade to 3.0
+
+ -- Andreas Metzler <ametzler@debian.org>  Fri,  2 May 2003 17:36:28 +0200
+
+exim4-sa-plugin (2.2-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Andreas Metzler <ametzler@debian.org>  Thu, 13 Mar 2003 17:16:46 +0100
+

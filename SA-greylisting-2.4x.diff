@@ -1,0 +1,264 @@
+Note, this patch is unmaintained. It is not supposed to be functional or
+safe anymore, but I'm leaving it behind if you'd like to backport the 2.6
+patch to SA 2.4 (much easier than with 2.6)
+
+-- Marc
+
+
+diff -urN SpamAssassin.orig/Conf.pm SpamAssassin/Conf.pm
+--- SpamAssassin.orig/Conf.pm	Mon Jul 14 11:57:40 2003
++++ SpamAssassin/Conf.pm	Sun Feb 22 17:17:03 2004
+@@ -66,6 +66,9 @@
+ use constant TYPE_RBL_EVALS     => 0x0013;
+ # UNUSED => 0x0014
+ use constant TYPE_RBL_RES_EVALS => 0x0015;
++# Need to reserve a number with the SA folks (needs to be odd as it is an
++# eval test)
++use constant TYPE_RES_EVALS	=> 0x0021;
+ 
+ $VERSION = 'bogus';     # avoid CPAN.pm picking up version strings later
+ 
+@@ -1507,6 +1510,9 @@
+     if (/^header\s+(\S+)\s+rblreseval:(.*)$/) {
+       $self->add_test ($1, $2, TYPE_RBL_RES_EVALS); next;
+     }
++    if (/^header\s+(\S+)\s+reseval:(.*)$/) {
++      $self->add_test ($1, $2, TYPE_RES_EVALS); next;
++    }
+     if (/^header\s+(\S+)\s+eval:(.*)$/) {
+       my ($name,$rule) = ($1, $2);
+       # Backward compatibility with old rule names -- Marc
+@@ -2096,6 +2102,9 @@
+ 	}
+ 	elsif ($type == TYPE_RBL_RES_EVALS) {
+ 	  $self->{rbl_res_evals}->{$name} = \@args;
++	}
++	elsif ($type == TYPE_RES_EVALS) {
++	  $self->{res_evals}->{$name} = \@args;
+ 	}
+ 	elsif ($type == TYPE_RAWBODY_EVALS) {
+ 	  $self->{rawbody_evals}->{$name} = \@args;
+diff -urN SpamAssassin.orig/EvalTests.pm SpamAssassin/EvalTests.pm
+--- SpamAssassin.orig/EvalTests.pm	Mon Feb 23 23:28:37 2004
++++ SpamAssassin/EvalTests.pm	Tue Feb 24 21:34:36 2004
+@@ -1863,6 +1863,195 @@
+   return 0;
+ }
+ 
++
++# This was originally written to implement greylisting in SA-Exim, although
++# I have tried to make it more general and allow for reuse in other MTAs
++# (although they will need to
++# 1) be running SA at SMTP time
++# 2) Provide the list of rcpt to and env from in some headers for SA to read
++# 3) Provide the IP of the connecting host )
++#
++# This rule should get a negative score so that if we've already seen the
++# greylisting tuplet before, we lower the score, which hopefully brings us from
++# a tempreject to an accept (at least that's how sa-exim does it)
++# -- Marc <marc_soft@merlins.org> 2004/01/19
++
++sub greylisting {
++  # db/file/dir / pointer type / how many secs to greylist after 1st connection
++  # SA score after which we don't bother running / SMTP time data header names 
++  my ($self, $dirorfileordb, $method, $greylisttime, $dontcheckscore,
++	  $connectiphdr, $envfromhdr, $rcpttohdr) = @_;
++  my $dirorfile = shift @_;
++
++  my $connectip; 
++  my $envfrom;
++  my $rcptto;
++  my @rcptto;
++  my $iswhitelisted=0;
++  my $err;
++  my $mesgid = $self->get ('Message-Id')."\n"; 
++  my $tuplet;
++  
++  # No newlines, thank you (yes, you need this twice apparently)
++  chomp ($mesgid);
++  chomp ($mesgid);
++  $mesgid =~ s/\012/|/g;
++
++  # For stuff that we know is spam, don't greylist the host
++  # (that might help later spam with a lower score to come in)
++  if ($self->{hits} >= $dontcheckscore)
++  {
++    #warn "debug: skipping greylisting on $mesgid, since score is already ".$self->{hits}." and you configured greylisting to not bother with anything above $dontcheckscore\n";
++    return 0;
++  }
++
++
++  if (not $connectip = $self->get($connectiphdr))
++  {
++    warn "Couldn't get Connecting IP header $connectiphdr for message $mesgid, skipping greylisting call\n";
++    return 0;
++  }
++  chomp($connectip);
++  # Clean up input (for security, if you use files/dirs)
++  $connectip =~ s#/#-#g;
++
++  if (not $envfrom = $self->get($envfromhdr))
++  {
++    warn "Couldn't get Envelope From header $envfromhdr for message $mesgid, skipping greylisting call\n";
++    return 0;
++  }
++  chomp($envfrom);
++  # Clean up input (for security, if you use files/dirs)
++  $envfrom =~ s#/#-#g;
++
++  if (not $rcptto = $self->get($rcpttohdr))
++  {
++    warn "Couldn't get Rcpt To header $rcpttohdr for message $mesgid, skipping greylisting call\n";
++    return 0;
++  }
++  chomp($rcptto);
++  # Clean up input (for security, if you use files/dirs)
++  $rcptto =~ s#/#-#g;
++  @rcptto = split(/, /, $rcptto);
++
++  umask 0007;
++
++  foreach $rcptto (@rcptto)
++  {
++    my $ipdir = "$dirorfileordb/$connectip";
++    my $tupletdir = "$ipdir/$envfrom";
++
++    $tuplet = "$tupletdir/$rcptto";
++  
++    # The dir method is easy to fiddle with and expire records in (with
++    # a find | rm) but it's probably more I/O extensive than a real DB
++    # and suffers from directory size problems if a specific IP is sending
++    # generating tens of thousands of tuplets. -- Marc
++    # That said, I prefer formats I can easily tinker with, and not having to
++    # worry about buggy locking and so forth 
++    if ($method eq "dir")
++    {
++      # make directory whether it's there or not (faster than test and set)
++      mkdir $ipdir;
++      mkdir $tupletdir;
++
++      if (not -e $tuplet) 
++      {
++        # If the tuplets aren't there, we create them and continue in
++        # case there are other ones (one of them might be whitelisted already)
++	$err="creating $tuplet";
++	open (TUPLET, ">$tuplet") or goto greylisterror;
++	print TUPLET time."\n";
++	print TUPLET "Status: Greylisted\n";
++	print TUPLET "Last Message-Id: $mesgid\n";
++	print TUPLET "Whitelisted Count: 0\n";
++	print TUPLET "Query Count: 1\n";
++	$err="closing first-written $tuplet";
++	close TUPLET or goto greylisterror;
++      }
++      else
++      {
++	my $time;
++	my $status;
++	my $whitelistcount;
++	my $querycount;
++
++	# Take into account race condition of expiring deletes and us running
++	$err="reading $tuplet";
++	open (TUPLET, "<$tuplet") or goto greylisterror;
++	$err="Couldn't read time";
++	$time=<TUPLET> or goto greylisterror;
++	chomp ($time);
++
++	$err="Couldn't read status";
++	$status=<TUPLET> or goto greylisterror;
++	chomp ($status);
++	$err="Couldn't extract Status from $status";
++	$status =~ s/^Status: // or goto greylisterror;
++
++	# Skip Mesg-Id
++	$err="Couldn't skip Mesg-Id";
++	$_=<TUPLET> or goto greylisterror;
++
++	$err="Couldn't read whitelistcount";
++	$whitelistcount=<TUPLET> or goto greylisterror;
++	chomp ($whitelistcount);
++	$err="Couldn't extract Whitelisted Count from $whitelistcount";
++	$whitelistcount =~ s/^Whitelisted Count: // or goto greylisterror;
++
++	$err="Couldn't read querycount";
++	$querycount=<TUPLET> or goto greylisterror;
++	chomp ($querycount);
++	$err="Couldn't extract Query Count from $querycount";
++	$querycount =~ s/^Query Count: // or goto greylisterror;
++	close (TUPLET);
++
++	$querycount++;
++	if ((time - $time) > $greylisttime)
++	{
++	  $status="Whitelisted";
++	  $whitelistcount++;
++	}
++
++	$err="re-writing $tuplet";
++	open (TUPLET, ">$tuplet") or goto greylisterror;
++	print TUPLET "$time\n";
++	print TUPLET "Status: $status\n";
++	print TUPLET "Last Message-Id: $mesgid\n";
++	print TUPLET "Whitelisted Count: $whitelistcount\n";
++	print TUPLET "Query Count: $querycount\n";
++	$err="closing re-written $tuplet";
++	close TUPLET or goto greylisterror;
++
++        # We continue processing the other recipients, to setup or
++	# update their counters
++	if ($status="Whitelisted")
++	{
++	  $iswhitelisted=1;
++	}
++      }
++    }
++    elsif ($method eq "file")
++    {
++      warn "codeme\n";
++    }
++    elsif ($method eq "db")
++    {
++      warn "codeme\n";
++    }
++  }
++  
++  return $iswhitelisted;
++  
++  greylisterror:
++  warn "Reached greylisterror: $err / $!";
++  # delete tuplet since it apparently had issues but don't check for errors
++  # in case it was a permission denied on write
++  unlink ($tuplet);
++  return $iswhitelisted;
++}
++
++
+ ###########################################################################
+ # BODY TESTS:
+ ###########################################################################
+diff -urN SpamAssassin.orig/PerMsgStatus.pm SpamAssassin/PerMsgStatus.pm
+--- SpamAssassin.orig/PerMsgStatus.pm	Mon May 12 12:15:33 2003
++++ SpamAssassin/PerMsgStatus.pm	Sun Feb 22 17:47:11 2004
+@@ -189,6 +189,9 @@
+ 
+     # add points from Bayes, before adjusting the AWL
+     $self->{hits} += $self->{learned_hits};
++    
++    # Now, we can run rules that have to run last
++    $self->do_res_eval_tests();
+ 
+     # Do AWL tests last, since these need the score to have already been
+     # calculated
+@@ -1866,6 +1869,11 @@
+   my ($self) = @_;
+   # run_rbl_eval_tests doesn't process check returns unless you set needresult
+   $self->run_rbl_eval_tests ($self->{conf}->{rbl_res_evals}, 1);
++}
++
++sub do_res_eval_tests {
++  my ($self) = @_;
++  $self->run_eval_tests ($self->{conf}->{res_evals}, '');
+ }
+ 
+ sub do_head_eval_tests {

@@ -1,0 +1,20 @@
+# These templates have been reviewed by the debian-l10n-english
+# team
+#
+# If modifications/additions/rewording are needed, please ask
+# debian-l10n-english@lists.debian.org for advice.
+#
+# Even minor modifications require translation updates and such
+# changes should be coordinated with translators and reviewers.
+
+Template: sa-exim/purge_spool
+Type: boolean
+Default: false
+_Description: Remove saved mails in sa-exim's spool directory?
+ There are some saved mails in subdirectories of /var/spool/sa-exim.
+ Depending on the configuration, sa-exim may save mails matching specific
+ criteria (such as "an error occurred", "rejected as spam", or "passed
+ through although recognized as spam") in these directories.
+ .
+ Please choose whether you want to keep these mails for further analysis
+ or delete them now.

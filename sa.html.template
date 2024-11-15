@@ -1,0 +1,211 @@
+<html>
+<head>
+  <title>Exim SpamAssassin at SMTP time</title>
+  <base href="http://marc.merlins.org/linux/exim/">
+  <meta charset="UTF-8">
+</head>
+
+<body>
+
+<h1 ALIGN="CENTER">Exim SpamAssassin at SMTP time</h1>
+
+<h3>What's that?</h3>
+<pre>
+mail from: merlin@gandalf
+250 OK
+rcpt to: merlin@gandalf
+250 Accepted
+data
+354 Enter message, ending with "." on a line by itself
+From: merlin@gandalf
+To: merlin@gandalf
+Subject: $$$ Make Money Fast $$$ !!!
+
+viagra 100% GARANTEE AMAZING FULL REFUND 
+This is not spam
+.
+550 Rejected
+</pre>
+(logs would show something like this:
+<tt>2004-03-10 08:27:18 1B16Y8-0001UP-4R SA: Action: permanently rejected message: hits=14.8 required=7.0 trigger=11.0 ( scanned in 2/2 secs | Message-Id: CCQPVENACPQBFLTRLICXWQVEK@gandalf). From <merlin@gandalf> (host=gandalf [127.0.0.1]) for merlin@gandalf</tt>)
+
+
+<P>
+An example of teergrube would return this instead
+<pre>
+data
+354 Enter message, ending with "." on a line by itself
+(...)
+body     SEE_FOR_YOURSELF       /See (?:for|it) yourself\b/i
+describe SEE_FOR_YOURSELF       See for yourself
+
+body ORDER_NOW                  /\border (?:now|soon|fast|quickly|while)\b/i
+describe ORDER_NOW              Encourages you to waste no time in ordering
+
+.
+451- wait for more output
+451- wait for more output
+451- wait for more output
+(... one line every 10 secs, 15 minutes elapse ...)
+450 Please try again later
+</pre>
+
+The idea here is to stall and waste the resources of the remote sender (BTW
+teergrube comes from german, and means tar-pitting, or stopping someone in his
+tracks)
+
+<BR><BR>
+<h3>Why?</h3>
+SpamAssassin can be run inside exim after the mail has been accepted, as shown
+<a href="http://bogmog.sourceforge.net/document_show.php3?doc_id=28">here</a>,
+but if you're not going to use my patch and you just want to run SA as an exim
+transport, 
+<a href="http://dman13.dyndns.org/~dman/config_docs/exim-spamassassin/">this</a>
+version is recommended
+<P>
+Now, while this will work, we can do better, hence the reason for my code
+(just to make things clear, you do not want to run both my code, and dman's
+transports. It'd work, but you'd be scanning the message twice)
+<P>
+The reason why I wanted SpamAssassin in local scan is that I don't want to
+accept the damn spam in the first place.
+
+<ul>
+<li>While my code lets you do that, I don't like to send mails to the bit
+    bucket, so you need to bounce them.
+<li>Once you accept the spam, you can't bounce it half the time, or you
+    bounce it to an innocent whose Email was forged as an envelope sender
+    (some spam even forges the bounce address to <em>you</em>)
+<li>If I refuse spam at SMTP time, it will remove the spam addresses from at
+    least a few lists (they gotta clean their lists eventually otherwise they'd
+    spend more time Emailing dead addresses than good ones)
+<li>I have the option of toying with spammers and stall their connections and
+    waste their resources (see the following page for details on 
+    <A HREF="http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html">
+    teergrubing</A>
+</ul>
+
+Note that you can also use this code to simply run SA on all your mails (or
+portion thereof as configured with SAEximRunCond) without having to configure SA
+in your exim.conf. In other words, this code can be configured to not reject
+any mails.
+
+<BR><BR>
+<h3>SpamAssassin? What's that?</h3>
+Ah, you need to visit <a href="http://spamassassin.org/">this page</a> first 
+then
+
+
+<BR><BR>
+<h3>How does it work, what knobs are there?</h3>
+You need to configure spamassassin to flags mails as spam after a certain
+threshold (7 for instance). After that, this code can be configured to
+
+<ul>
+<li>Pretend to be processing the Email and send continuation lines to the
+    remote server until it gives up (aka 
+    <A HREF="http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html">
+    teergrubing</A>)
+<li>Accept but not deliver mail with a high threshold (i.e. devnull the mail)
+<li>Reject mail with a lower threshold
+<li>Temporarily reject mail with a still lower threshold (you can then inspect
+    your logs to decide if you want to tweak SA so that next time the mail
+    is sent, you can receive it)
+<li>In all 5 cases, mail can be optionally saved to disk so that you can
+    inspect all the mails you've rejected or /dev/nulled
+</ul>
+
+You can also (and probably should :-)) use the new greylisting support for even
+better spam control
+
+
+<P>
+For more details, you should look at the self-documented 
+<a href="files/sa-exim.conf">config file</a> and you can see 
+<a href="sa-exim.demo.txt">some sample rejects and what you get in the logs</a>
+
+
+<BR><BR>
+<h3><A NAME="greylisting">Greylisting you say?</A></h3>
+While when sa-exim first came out, its strongest point was being one of the
+first programs (if not the first) that let you reject Spam at SMTP time, its
+coolest feature now is adaptive greylisting support<BR>
+In a nutshell, you get the advantages of greylisting without the disadvantages:
+<ul>
+<li>mails with a low spam score are accepted without delay
+<li>mails with an average spam score are greylisted, 
+    <b>and only those are delayed</b>
+<li>mails with high spam scores are rejected regardless (no greylisting)
+</ul>
+
+This method is the best combination I've seen out there so far, and
+while I've been talking about it for a while, I don't yet know of other 
+programs that implement this method (if you do, please let me know so that
+I can acknowledge them)
+<BR>
+For more details on how this works, check out the <a href="files/sa-exim-cvs/README.greylisting">greylisting README</a>
+
+
+<BR><BR>
+<h3>Ok, where's the code? / Downloads</h3>
+<ul>
+<li>The latest version is here (<a href="files/sa-exim-current/">browsable tree</a> or <a href="files/sa-exim-current.tar.gz">tar.gz</a>). You can also
+get it from <A href="http://sourceforge.net/projects/sa-exim/">sf.net</a><BR>
+<li>The CVS version is here (<a href="files/sa-exim-cvs/">browsable tree</a>)
+and you can also get the CVS tree from
+<A HREF="http://sourceforge.net/cvs/?group_id=56124">sf.net</A>
+<li>The latest config file with documentation is 
+<a href="files/sa-exim.conf">here</a>
+<li>Debian packages (source and binary) are <a href="files/debian/">here</a>
+</ul>
+<P>
+
+As explained in the archive, you can either copy <tt>sa-exim.c</tt> over exim's
+<tt>src/local_scan.c</tt> You need to copy local_scan in src in the exim source
+tree and rebuild it, or you can build sa-exim as a loadable module (you need
+to patch exim to support loadable modules though)
+<P>
+You can also browse all my exim files <A HREF="files/">here</A>
+
+<BR><BR>
+<h3>Mailing list</h3>
+You should probably subscribe to this low traffic 
+<a href="http://lists.merlins.org/lists/listinfo/sa-exim">mailing list</a> if
+you download the code to keep apprised of bug fixes and enhancements
+
+<BR><BR>
+<h3>Integration with Exim 4</h3>
+This code works without anything in the exim conf, but you probably want to use
+some knobs to disable scanning for some users (like setting 
+<tt>X-SA-Do-Not-Rej</tt> or <tt>X-SA-Do-Not-Run</tt> in the rcpt ACL and 
+removing those headers in the right places).<BR>
+See <A HREF="http://marc.merlins.org/linux/exim/#conf">my exim4 conf tree</a>
+and more specifically the 
+<A HREF="http://marc.merlins.org/linux/exim/exim4-conf/exim4.conf">exim4.conf</A> 
+file
+<P>
+You can look at the <A HREF="files/sa-exim-cvs/README">README</A> for more 
+integration details.
+
+
+<BR><BR>
+<h3>Changelog/Download</h3>
+
+<Changelog>
+</Changelog>
+
+<P>
+More generally, all the files can also be found <A HREF="files/">here</A>
+<P>
+<A HREF="/perso/contact.html">Feedback is appreciated</A> (but please
+prefer the use of the 
+<a href="http://lists.merlins.org/lists/listinfo/sa-exim">sa-exim list</a>)
+
+<BR><BR>
+<h3>Acknowledgements</h3>
+
+<Acknowledgements>
+</Acknowledgements>
+
+</body>
+</html>

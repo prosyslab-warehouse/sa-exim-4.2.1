@@ -1,0 +1,358 @@
+COPYRIGHTS
+----------
+SA-Exim was written by Marc MERLIN <marc_soft@merlins.org>
+You can find the latest version here: 
+    http://sa-exim.sf.net/
+or here:
+    http://marc.merlins.org/linux/exim/sa.html
+
+greylisting was written by and is copyright Mark Lawrence <nomad@null.net>
+
+
+INSTALL
+-------
+See the file named INSTALL for installations instructions (either compiled
+in exim, or as a stand-alone shared library)
+
+If you got sa-exim prepackaged (like on debian), you have to make sure that
+your exim supports a dynamically loadable local_scan (which is true on debian
+and probably on other distros too if they shipped sa-exim as a package), and
+that your exim4.conf file contains the following:
+local_scan_path = /usr/lib/exim4/local_scan/sa-exim.so
+If you are using the split configuration file on debian with the sa-exim deb
+package, you'll be fine. If you're using the monolithic file, you are on your
+own until/unless the sa-exim packages try to do an in place edit (i.e. you have
+to add the above configuration line yourself)
+
+
+UPGRADING
+---------
+Deleting greylisting tuplets pre-4.2.1:
+If you are installing this package yourself, and ever installed the old
+greylistclean.cron which contained the complicated shell commands to clean
+old tuplets, you should stop using those commands and upgrade to greylistclean.
+Upgrading Greylisting.pm should also create safer tuplets without whitespace,
+but it's better to get rid of the old shell cron jobs either way
+
+
+PRIVACY WARNING
+---------------
+SA-Exim can add a header with the list of recipients in an Email (including
+Bcced folks).
+X-SA-Exim-Rcpt-To is used to allow you to see who a spam went to easily (i.e.
+without scanning the exim logs), and to write SpamAssassin rules on the envelope
+To (like adding a score if there were too many recipients or a recipient who you
+know only receives spam)
+X-SA-Exim-Rcpt-To is not added anymore by default, you need to enable it by
+setting SAmaxrcptlistlength to a value up to 8000, but if you do add it,
+you should consider removing it in exim's system_filter or in a transport. 
+If SARewriteBody is true you should also consider setting
+SAaddSAEheaderBeforeSA to false (see the config) as all the recipients
+will be visible in the attached spam, note that this disables the
+ability to write SpamAssassin rules based on X-SA-Exim-Rcpt-From/To.
+In real life, who a spam was sent to isn't really a problem, but it could be if
+a private message is mis-categorized as spam
+Note however that if you disable X-SA-Exim-Rcpt-To by setting 
+SAmaxrcptlistlength to 0, you will not be able to use greylisting, which
+depends on this header (however you'd still be welcome to remove the header in
+system_filter)
+
+
+CONFIGURATION
+-------------
+You should read sa-exim.conf, all the options there should be well
+documented.
+
+Note that the code will not act on any mail before it is flagged as SPAM by SA.
+
+Having SA flag the mail however doesn't mean the code rejects it or throws
+the alleged spam away, you control what you want to do depending on the score.
+The only restriction is that things happen in this order (for increasing SA
+scores)
+
+    - Save in SAnotspamsave if enabled
+    - Save in SAspamacceptsave if enabled
+    - Temporarily reject and optionally save if enabled
+    - Permanently reject and optionally save if enabled
+    - Accept, drop the mail, and optionally save if enabled
+    - Teergrube (i.e. stall) the sender to waste his resources (and yours)
+
+Note that you cannot set a teergrube threshold of 12, and a permreject
+threshold of 20 (not that it would make much sense anyway).
+Threshold scores should decrease as you apply the highest to the lowest penalty
+(i.e. the rules are run in this order: teergrube, devnull, permreject,
+tempreject)
+
+Now, as of SA-Exim 4.2, things get slightly more complicated as scores are 
+actually full exim conditions, and therefore you could have:
+SAteergrube: ${if and { {!eq {$sender_host_address}{127.0.0.1}} {!eq {$sender_host_address}{127.0.0.2}} } {25}{1048576}}
+This means that if your condition succeeds, the teergrube score is set to 25,
+and if the condition fails, the teergrube score is set to 2^20, which for all
+intents and purposes, disables teergrubing.
+Regardless of what your scores end up being after the conditions are evaluated,
+sa-exim still tests them in this order: teergrube, devnull, permreject,
+tempreject)
+
+
+
+
+CONFIGURING SPAMASSASSIN
+------------------------
+A good example of spamassassin configuration would be:
+
+    report_safe            0
+    use_terse_report       1	# for SA < 3.x
+
+This will put a non-verbose SPAM-report in the headers, but leave the
+message itself intact for easy analyzing and for easy feeding to
+sa-learn when mis-flagged as spam or ham. The only way to see the
+message is spam, is by looking in the headers. 
+
+If you have an older version of SpamAssassin (<= 2.50), you'd probably
+want to add 'report_header 1' to that list. But this is default and
+un-needed in new versions of SA)
+
+If you set 'report_safe' to a true value, you might also want to set
+use_terse_report to a false value, in case you'll get the long header
+which might be friendlier to your users.
+
+For SA before 3.x, add 'always_add_report 1' to always have a spamcheck report
+put in the message. This might be useful to test rules.
+For SA 3.x onward, the syntax you'd want, is:
+add_header                      all Report _REPORT_
+
+Since SA is usually configured to pass messages on that are beyond the SA 
+spam threshold, it can make sense to rewrite the subject line. 
+To achieve this, you would use this for SA 2.x:
+    rewrite_subject        1
+    subject_tag            SPAM: _HITS_:
+
+For SA 3.x, the syntax is:
+    rewrite_header Subject SPAM: _HITS_:
+    
+
+If you are using SA 2.50 or better, by default, you should probably set:
+    report_safe            0
+
+Now, if you are willing to take a small speed and I/O hit, you can have
+sa-exim read the body back from SA, and replace the original mail with
+the new body.
+
+You would use this if you want to set SA's report_safe to 1 or 2 (in
+which case you also have to set SARewriteBody: 1 in SA-Exim's config)
+
+Note that if you do so, unfortunately archived messages will have the
+body modified by SA. This is not very trivial to fix, so if you archive
+anything, you may not want to use SARewriteBody
+
+
+Important:
+
+You want to run spamd as such (you have to create the spamd user
+yourself):
+
+/usr/sbin/spamd -d -u spamd -H /var/spool/spamassassin/
+
+It may not work if you run spamd with -c (debian default), 
+(you shouldn't run spamassassin as root for this purpose anyway (there
+is no reason to, so why take the risk)
+
+You can edit this in /etc/default/spamassassin (debian) and probably
+/etc/sysconfig/spamassassin (redhat)
+
+With SA 3.x is better, the updated syntax would look like this:
+/usr/sbin/spamd --max-children 50 --daemonize --username=spamd --nouser-config --helper-home-dir=/var/spool/spamassassin/
+
+
+
+CONFIGURING EXIM4.CONF
+----------------------
+This code works without anything in the exim conf, but you probably want to use
+some knobs to disable scanning for some users (like setting X-SA-Do-Not-Rej
+or X-SA-Do-Not-Run in the rcpt ACL and removing those headers in the right 
+places)
+
+See http://marc.merlins.org/linux/exim/#conf and more specifically
+http://marc.merlins.org/linux/exim/exim4-conf/exim4.conf
+
+Note that obviously if you set those headers, spammers can set them too, so
+if you are concerned about this, you can either change the header name, or set 
+it to something else than 'Yes' and check for that value in sa-exim.conf
+(or as a 3rd option, you can use exim ACL variables to pass values to SA-Exim
+without generating headers; see the section contributed by Chirik, lower in
+this file)
+
+
+
+EXIM4 INTEGRATION / NOT SCANNING YOUR OWN MAILS
+-----------------------------------------------
+For a very complete exim4 config, including settings for SA, you should
+look at sa-exim.conf and play with:
+
+SAEximRunCond: ${if and{ \
+                            {def:sender_host_address} \
+                            {!eq {$sender_host_address}{127.0.0.1}} \
+                            {!eq {$h_X-SA-Do-Not-Run:}{Yes}} \
+                        } \
+                    {1}{0} \
+                }
+
+PLEASE NOTE: This conditional statement must be on one line. SA-Exim's
+configfile parser does not support \-lineconitunation!! 
+
+You may also want to look at my exim4.conf config if you haven't done so yet:
+http://marc.merlins.org/linux/exim/#conf
+
+The check_rcpt ACL has:
+  warn     message       = X-SA-Do-Not-Rej: Yes
+           local_parts   = +nosarej:postmaster:abuse
+
+  warn     message       = X-SA-Do-Not-Run: Yes
+           hosts         = +relay_from_hosts
+
+  warn     message       = X-SA-Do-Not-Run: Yes
+           authenticated = *
+
+Then, you'll want to strip SA headers for messages that aren't local
+This means you should strip them at least in the remote_smtp transport
+with this configuration snippet:
+
+  # This is generally set on messages originating from local users and it tells
+  # SA-Exim not to scan the message or that the message was scanned.
+  # Let's remove these headers if the message is sent remotely
+  headers_remove = "X-SA-Do-Not-Run:X-SA-Exim-Scanned:X-SA-Exim-Mail-From:X-SA-Exim-Rcpt-To:X-SA-Exim-Connect-IP"
+
+
+You can also use another option, which can't be spoofed by a spammer, but
+won't show you why a mail didn't get scanned if it was sent to multiple
+people (which is why I personally prefer the above, even if it's spoofable)
+
+Contributed by Chirik <chirik@castlefur.com>:
+----------------------------------------------------------------------------
+I have the following:
+
+SAEximRunCond: ${if !eq {$acl_m0}{do-not-scan} {1} {0}}
+SAEximRejCond: ${if !eq {$acl_m0}{do-not-reject} {1} {0}}
+
+Then, in my recipient ACL, I have:
+
+  ##### Checks for postmaster or abuse - we'll scan, still, but not reject
+  ##### Don't reject for certain users
+  warn     local_parts   = postmaster : abuse
+           set acl_m0    = do-not-reject
+
+  ##### Check for situations we don't even scan (local mail)
+  ##### Don't scan if hosts we relay for (probably dumb MUAs),
+  warn     hosts         = +relay_from_hosts:127.0.0.1/8
+           set acl_m0    = do-not-scan
+
+  ##### Don't scan non-smtp connections (empty host list)
+  warn     hosts         = :
+           set acl_m0    = do-not-scan
+
+  ##### Don't scan if authenticated
+  warn     authenticated = *
+           set acl_m0    = do-not-scan
+----------------------------------------------------------------------------
+
+
+
+TEERGRUBING: SAteergrube
+------------------------
+The idea is for mail that you know for sure is spam (I use a threshold of 25),
+you can stall the spammer for as long as possible by sending a continuation
+line every 10 seconds:
+451- wait for more output
+451- wait for more output
+451- wait for more output
+(...)
+
+You can go there for details:
+http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html
+
+What should you know?
+1) This is obviously going to use up some of your resources
+2) You should not teergrube SMTP servers that relay mail for you, be
+   courteous (set a condition in SAteergrube like in the example
+   provided). Besides they are real mail relays, so they will diligently
+   try to send you the spam over and over for days)
+   (note that you should probably not teergrube mailling lists you subscribed
+   to either, or you risk getting unsubscribed)
+   See a sample in sa-exim.conf for example syntax.
+3) Because of limitations in the current exim code, teergrubing will not work
+   over TLS.
+   This shouldn't be a problem since real spammers should not be using TLS,
+   and you shouldn't teergrube relays that do TLS with you.
+   If you do teergrube a TLS connection, it will break the connection and you
+   will see this in your logs:
+18640m-0000Vb-00 SSL_write error 5
+TLS error (SSL_write): error:1408F10B:SSL routines:SSL3_GET_RECORD:wrong version number
+   This is not ideal, but in real life, that's ok.
+
+
+
+GREYLISTING
+-----------
+See README.greylisting
+
+
+
+READING ARCHIVED SPAMS
+----------------------
+Spams are optionally saved in individual files in a 'new' subdirectory
+of some place like /var/spool/sa-exim/SAteergrube.
+
+There are two ways to read them:
+1) cat new/*  > /tmp/mailbox, and use  the resulting file as  a standard
+   mbox file with any mail client (if SAPrependArchiveWithFrom is true)
+2) Use a maildir capable mail client, like mutt, and run something like
+   'mutt -f /var/spool/sa-exim/SAteergrube'. This will read the messages in
+   place, since what sa-exim creates looks like a valid Maildir spool.
+
+If you configured SA-Exim to set X-SA-Exim-Rcpt-To, you can even resend
+archived refused messages to the users they were meant for
+
+Note that sa-exim runs with the same uid/gid than the exim daemon (something
+like mail, exim, or Debian-Exim), so /var/spool/sa-exim/SAteergrube must exist
+and be writeable by exim.
+SA-Exim will then create (sub-)directories with the permissions 0770 as
+needed (those permissions aren't a configuration option, but you can change
+them after the fact or pre-create the directories with the permissions of your
+choice)
+Files are created with 0664 permissions so that anyone who has directory access
+can read (and maybe write) the files. 
+If you chgrp the parent 'new' directory to a group of your choice, and give it
+permissions 2770 or 2775, the files will be created with that group instead of
+the default exim group
+
+
+
+LOG AND SMTP OUTPUT
+-------------------
+As of SA-Exim 3.0, SMTP output does not contain the spam score anymore,
+and you can change the messages or re-add the score by changing the
+runtime SAmsg* variables
+
+All SA-Exim log now looks like this:
+- "SA: PANIC: "		-> severe errors
+- "SA: Warning: "	-> config file parsing errors
+- "SA: Notice: "	-> misc info on what SA-Exim is doing or not doing
+- "SA: Action: "	-> what action SA-Exim took on a mail after scanning
+- "SA: Debug[X]: "	-> misc debug info if enabled
+
+Marin Balvers has written a nice log parser here:
+http://nossie.addicts.nl/projects/sa-exim-stats/
+
+
+
+FAQ
+---
+Why do I get this in my exim logs?
+
+2004-05-15 12:43:57 1BP54T-0002gV-Nu TLS send error on connection from internalmx1.company.tld (internalmx.company.tld) [192.168.1.1]:51552: Error in the push function.                                           
+2004-05-15 12:43:57 TLS recv error on connection from internalmx1.company.tld (internalmx.company.tld)              
+[192.168.1.1]:51552: The specified session has been invalidated for some reason.
+
+This is because you are teergrubing a host that is doing TLS. Teergrubing does
+not work with TLS, and people doing TLS with you are probably known relays which
+you should exclude from your teergrube list (SAteergrubecond)

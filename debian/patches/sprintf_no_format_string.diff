@@ -1,0 +1,19 @@
+Description: Do not invoke printf-like function without parameter.
+ required for compat with exim 4.93
+Author: Andreas Metzler <ametzler@debian.org>
+Origin: vendor
+Bug-Debian: https://bugs.debian.org/943571
+Forwarded: no
+Last-Update: 2019-11-03
+
+--- sa-exim-4.2.1.orig/sa-exim.c
++++ sa-exim-4.2.1/sa-exim.c
+@@ -1261,7 +1261,7 @@ restart:
+ 	    }
+ 
+ 	    stret=write(fd, buffer, strlen(buffer));
+-	    CHECKERR(stret,string_sprintf("SA body write to msg"),__LINE__);
++	    CHECKERR(stret,string_sprintf("%s", "SA body write to msg"),__LINE__);
+ 	    if (SAEximDebug > 8)
+ 	    {
+ 		log_write(0, LOG_MAIN, "SA: Debug9: Wrote to msg; line %d (wrote %d)", line, ret);

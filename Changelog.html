@@ -1,0 +1,291 @@
+<!-- <li>2004/08/23 - v4.2.1+cvs (<a href="files/sa-exim-cvs.tar.gz">sa-exim cvs tar.gz</a>
+    (latest version available via CVS only, or a somewhat recent via 
+    <a href="files/sa-exim-cvs.tar.gz">this link</a>) -->
+
+<li>2006/01/09 - v4.2.1 (<a href="files/sa-exim-4.2.1.tar.gz">sa-exim.tar.gz</a>
+or <a href="files/local_scan/local_scan.c_4.2.1">local_scan only</a>)
+    <br><b>Security update</b> (reported by Chris Morris)
+    <ul>
+    <li>Modified Greylisting.pm not to generate tuplets with spaces, although
+	the cleaning cron job is now safe with regard to whitespace
+    <li>Included Mark Lawrence's perl script to better clean old tuplets
+    <li>The default config now ships with the greylistclean cronjob running
+	as nobody (which spamd should be running as, too)
+    </ul>
+
+<li>2005/01/17 - v4.2 (<a href="files/sa-exim-4.2.tar.gz">sa-exim.tar.gz</a>
+or <a href="files/local_scan/local_scan.c_4.2">local_scan only</a>)
+    <br><b>Do not use, greylistclean is insecure, use 4.2.1 instead</b>
+    <ul>
+    <li>Fixed code so that it compiles inside the exim tree too (thanks Jason)
+    <li>Support SA 3.0 new score reporting format (score= instead of hits=)
+    <li>Proper SA 3.0 plugin support
+    <li>Documentation updates
+    <li>greylisting files now also save the last SA score, just in case
+    <li>Saved files are now group read/write too, if you need to shut off group
+        access, do it at the directory level
+    <li>Only rewrite Content-Type/Content-Transfer-Encoding if SARewriteBody is
+	on now (this used to be useful with old SA versions and defang_mime
+	but those options are gone). Suggested by Adam Tilghman.
+    <li>Finally made all score threshold variables exim conditions that are
+        evaluated at runtime
+    <li>SAteergrubecond is deprecated as a result
+    </ul>
+
+<li>2004/08/16 - v4.1 (<a href="files/sa-exim-4.1.tar.gz">sa-exim.tar.gz</a>
+or <a href="files/local_scan/local_scan.c_4.1">local_scan only</a>)
+    <b>Please see the mailing list, or use the CVS version if you are compiling
+    sa-exim inside your exim tree</b> (there is a small mistake in the source
+    which will prevent proper building) / <b>You also need CVS if you are 
+    using SA 3.0</b>
+    <ul>
+    <li>Deal with being called with the number of recipients is 0 (reported by
+	John Horne)
+    <li>Made hopefully fully 64 bit clean (well, it was written that way, 
+	except for that pesky printf in C, which got in the way). Kudos go to 
+	Adam D. Barratt for finding and explaining the bug
+    <li>Switched to using strchr instead of index to remove compilation warnings
+	on some systems (reported by John Horne/Jeff Carter)
+    <li>Added SAspamcHost/SAspamcPort at the request of several people
+    <li>Fixed mbox From file to be standards complaint (reported by Cliff Hones)
+    <li>Added SAFEMESGIDCHARS option for safer message-id based filenames
+    <li>New version of the SA patch, with safe file creation (clean env from
+        and rcpt to before using as directory names)
+    <li><b>IMPORTANT</b>: if you are using greylisting, and applied the
+	previous greylisting patch, it didn't create shell safe filenames,
+	it is therefore highly recommended that you apply the new version
+    <li>Added a quick patch to sa-exim to deal with headers that are longer
+	than 8K (and drop the remaining lines)
+    </ul>
+
+
+<li>2004/03/16 - v4.0 (<a href="files/sa-exim-4.0.tar.gz">sa-exim.tar.gz</a>
+or <a href="files/local_scan/local_scan.c_4.0">local_scan only</a>)
+    <ul>
+    <li>Added SAspamcpath (from Richard Lithvall)
+    <li>Makefile fixes for version.h and dependencies
+    <li>Added exim acl_m trick from Chirik in README
+    <li>New code to read and pass on any X-Spam- header from SpamAssassin
+    <li>Message-Id is now logged in SA log entries to allow you track down
+	a message in other logfiles, like SA's log
+    <li>Add X-SA-Exim-Connect-IP header for greylisting
+    <li>Allow for tempreject on messages not flagged as spam by SA (for 
+	greylisting)
+    <li>Added greylisting support (see README.greylisting)
+    <li>Added the following options to sa-exim.conf:
+	<ul>
+	<li>SAspamcSockPath
+	<li>SAgreylistiswhitestr
+	<li>SAgreylistraisetempreject
+	</ul>
+    <li>Lots of documentation fixes and updates
+    <li>Basic debian tree shipped by default (but real deb package from Sander 
+	Smeenk)
+    </ul>
+
+<li>2003/08/18 - v3.1 (<a href="files/sa-exim-3.1.tar.gz">sa-exim tar.gz</a>
+    or <a href="files/local_scan/local_scan.c_3.1">local_scan only</a>)
+    <ul>
+    <li>Fixed <em>SA: Action: teergrubed sender until full configured duration</em> output
+    <li>spamassassin.conf was renamed sa-exim.conf (bad initial name choice)
+    <li>Changed teergrubing so that it works with exim 4.20 and above
+    <li>Added the much requested SARewriteBody option for SA 2.50's report_safe
+	(courtesy of Richard Lithvall)
+    <li>Added SAaddSAEheaderBeforeSA to deal with SARewriteBody and privacy
+    <li>Added SAPrependArchiveWithFrom option (Richard Lithvall)
+    <li>As announced in the previous version, SAStallSender was removed.
+	Use Teergrubing instead
+    <li>Message-Id is read directly from Exim now that the API allows for that
+	(we used to parse the Message-Id header ourselves) -&gt; except that
+	we don't use this for logging or saving messages: as soon as we can
+	read the real Message-Id from the headers, we use that Message-Id for
+        logging (this is to facilitate tracking of messages from the logs and
+        correlating with something like SA timelog files)
+    <li>Logging improved some more: Message-Id is added to log entries, as
+        well as the full mailinfo whether the message is spam or not
+    </ul>
+
+<li>2003/04/30 - v3.0 (<a href="files/sa-exim-3.0.tar.gz">sa-exim tar.gz</a>
+    or <a href="files/local_scan/local_scan.c_3.0">local_scan only</a>)
+    <ul>
+    <li>Makefile can generate a short sa-exim.conf (for Brian Kendig)
+    <li>Added a contrib directory with 3rd party scripts
+    <li>Since we already had X-SA-Exim-Rcpt-To: to show the envelope to
+        (disabled by default), I added X-SA-Exim-Mail-From: to show the
+	envelope from (always enabled, but you can delete it in system_filter
+	if you wish). If you can't easily see or parse the envelope sender
+	in your mails, this should definitely help
+    <li>Much improved directory creation and error handling for the reject
+        save directories
+    <li>Added SIGCHLD patch from David Woodhouse
+    <li>Added version header that looks like this:
+        X-SA-Exim-Version: 2.2.x-cvs (built Tue Apr 22 10:28:25 PDT 2003)
+    <li>Rewrote pretty much every log message to be more consistent and grepable
+	(the previous ones were quite bad). Suggested by multiple people
+	including Brian Kendig
+    <li>Made the SMTP error messages finally configurable (suggested by 
+        several people). This is now possible since exim lets me output a
+        different message in the log than in the SMTP session. Consequently, new
+        default messages do not show the spam score, this only goes to the exim
+        now.
+    <li>Made SAmaxrcptlistlength and option to control how long of a
+	X-SA-Exim-Rcpt-To header you can output if you want to output it at
+	all
+    <li>Do not output "savemail condition expanded to false" if not in debug
+	mode (as reported by Brian Kendig)
+    <li>Now ships with a sample local_scan.h if we can't find the exim source
+    <li>Change of logic to delete SA headers that were in the original mail
+	but weren't outputted by the SA run (like X-Spam-Flag, as reported
+	by Chad Leigh)
+    <li>Modified local_scan dlopen patch to deal with updates to the exim
+        local_scan API
+    <li>The default location for spamasassin.conf was changed to /etc/exim4
+        (debian default)
+    <li>Updated README and INSTALL
+    <li>Updated localscan_dlopen.patch to deal with minor/major version numbers
+    <li>Added X-SA-Exim-Version
+    </ul>
+<li>2002/10/28 - v2.2 (<a href="files/sa-exim-2.2.tar.gz">sa-exim tar.gz</a>
+    or <a href="files/local_scan/local_scan.c_2.2">local_scan only</a>)
+    <ul>
+    <li>Fixed a bug that affected all mails bigger than what spamc would
+	accept. Doh! (it not clear why, but spamc would hang and stop reading
+	after it had been fed more than it was willing to accept)
+    <li>Added more debugging code to help track the above problem
+    <li>Depending on SATruncBodyCond will now either not pass a message that's
+        too big to spamc, or will optionally truncate it first
+    <li>Now strips any X-SA-Exim-* headers already present in the message before
+        scanning it
+    <li>Added new X-SA-Exim-Rcpt-To: header (see privacy section in README)
+        after a suggestion from Brian Kendig
+    <li>Teergrube is now spelled correctly (note that the option names in
+        sa-exim.conf changed as a result)
+    <li>Teergrubing has been re-implemented to detect that the other side went
+        away so that exim doesn't stay around for nothing.
+    <li>Added SAteergrubecond so that you don't teergrube your neighbours
+    <li>Small cleanups
+    </ul>
+<li>2002/10/13 - v2.1 (buggy) (<a href="files/sa-exim-2.1.tar.gz">sa-exim tar.gz</a> 
+    or <a href="files/local_scan/local_scan.c_2.1">local_scan only</a>)
+    <ul>
+    <li>Default mail config is now in /etc/exim instead of /etc/mail
+    <li>Fixed SAstallsender so that exim doesn't leave spool files behind
+    <li>Fixed comparison for spam values as suggested by Patrice Fournier
+    <li>Returned a header saying whether SA-Exim was able to scan the mail
+        or not (based on a suggestion from Patrice Fournier)
+    <li>Added support for teergrubing as suggested by Robert Strickler
+        (see 
+        <A HREF="http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html">
+        http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html</A>)
+    <li>We now make sure that we feed spamc a little more data than it's
+        willing to accept. That way, we don't feed a truncated message
+    <li>sa-exim.conf now appends /new on save directories so that they
+        are valid maildir spool and you can run mutt -f dirname to read
+    <li>Small cleanups
+    </ul>
+
+<li>2002/07/07 - v2.0.1 (<a href="files/sa-exim-2.0.1.tar.gz">sa-exim tar.gz</a>
+    or <a href="files/local_scan/local_scan.c_2.0.1">local_scan only</a>)
+    <ul>
+    <li>Removed unneeded ## concatenation in macro
+    <li>Fixed lseek call, as reported by Peter N Lewis
+    <li>Improved Makefile for documentation
+    <li>Suggestion from dman to allow for config options overrides in Makefile
+    <li>Fixed all the compiler warnings that were fixable
+    <li>Handle more kinds of Message-Id as suggested by Patrice Fournier
+    </ul>
+
+<li>2002/06/14 - v2.0 (<a href="files/sa-exim-2.0.tar.gz">sa-exim tar.gz</a>
+    or <a href="files/local_scan/local_scan.c_2.0">local_scan only</a>)
+    <ul>
+    <li>Allow for stalling SMTP sessions from spammers (caution)
+    <li>Support X-Spam-Status from SA pre 2.30
+    <li>Build patches from Norm <norm@sandbox.org.uk>
+    <li>Documented that spamd shouldn't be run with -c
+    <li>dman's patch to allow for this to be a shared library
+    <li>dman's indirect request for saved files to be 660
+    </ul>
+<li><a href="files/local_scan/local_scan.c_2.0b1">2002/06/01 - v2.0b1</a><br>
+    This is how 1.0 would have been if I had done it right :-)
+    <ul>
+    <li>We now attempt to create directories we write to
+        (suggestion from Patrice Fournier)
+    <li>Log envelope sender, recipients and connecting host
+        on rejected messages (suggestion from Patrice Fournier)
+    <li>We can now save non rejected messages whether they were
+        flagged as spam or not (based on request from Patrice)
+    <li>Each save rule now has its own condition that lets you
+        decide which messages you want to save or not 
+    <li>Fixed parsing of Message-Id. May not parse all of them
+        but won't do anything stupid with bad input
+    <li>Fixed a buglet where we removed old headers before knowing
+        whether they were going to be replaced.
+    <li>Added much needed internal alarm so that we don't run
+        too long
+    <li>I added lots of options, but weren't able to test all
+        of them and their combinations, please reports problems
+        you may notice and documentation issues (in config file)
+    <li>Thanks also go to dman for his plentiful feedback
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.3">2002/05/21 - v1.3</a>
+    <ul>
+    <li>We now close the files we create on disk. Duh!
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.2.2">2002/05/17 - v1.2.2</a>
+    <ul>
+    <li>SA options are now kept in memory. Small cleanups
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.2.1">2002/05/13 - v1.2.1</a>
+    <ul>
+    <li>v1.2 (unreleased) didn't work right: it tagged messages
+	properly, but failed to see what was marked as spam and
+	couldn't reject messages. Fixed.
+    <li>Stripped newlines in header lines (better for logging)
+    <li>fixed header_add bug if headers contained '%'
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.2">2002/05/12 - v1.2</a> (unreleased)
+    <ul>
+    <li>According to Craig R Hughes, any X-Spam header can be multiline. 
+	Let's parse them accordingly
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.1.1">2002/05/08 - v1.1.1</a>
+    <ul>
+    <li>Added fake envelope from to mails that we save on disk
+        so that they can be opened with MUAs (idea from dman)
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.1">2002/05/07 - v1.1</a>
+    <ul>
+    <li>Cleaned up and fixed multiline header parsing
+    <li>Added parsing of Subject back from Spamc (suggestion from dman)
+    <li>We now log how long spamc took, and all messages processed
+        by spamc get logged in mainlog so that we know the outcome
+    <li>Added custom header compare function to handle mixed case headers
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.0.1">2002/05/06 - v1.0.1</a>
+    <ul>
+    <li>Fixed problems with reading Content-Type back from spamc
+       (we used to read whole body too, ooops...)
+    <li>Handle multi-line Content-Type headers.
+    <li>All log entries now start with "SA: "
+    <li>If SA gets run twice, we drop the previous X-Spam headers
+    <li>Support for X-Spam-Prev-Content-Transfer-Encoding
+    </ul>
+<li><a href="files/local_scan/local_scan.c_1.0">2002/05/05 - v1.0</a>
+    <ul>
+    <li>*Many* changes. This is now a real program with hopefully
+        most of the configuration options people could need
+    <li>Fully configurable through external config file
+    <li>Condition to run or not run SA against a message
+    <li>3 Levels of spam handling
+    <li>Option to save messages that are rejected or cause errors
+    <li>Very complete error checking
+    </ul>
+<li><a href="files/local_scan/local_scan.c_0.9.1">2002/04/17 - v0.9.1</a> 
+    <ul>
+    <li>Added a few checks for possible failures
+    </ul>
+<li><a href="files/local_scan/local_scan.c_0.9">2002/04/16 - v0.9</a>
+    <ul>
+    <li>Pre-release
+    </ul>
+</ul>

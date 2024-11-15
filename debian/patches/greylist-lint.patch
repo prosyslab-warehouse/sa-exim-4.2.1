@@ -1,0 +1,17 @@
+From: Chaskiel Grundman <cg2v@andrew.cmu.edu>
+Subject: Prevent warnings during spamassassin --lint
+Bug: https://bugs.debian.org/760860
+
+--- a/Greylisting.pm
++++ b/Greylisting.pm
+@@ -65,6 +65,10 @@ sub greylisting
+     my $dontcheckscore;
+     my %option;
+ 
++    if ($self->{main}->{lint_rules}) {
++       Mail::SpamAssassin::Plugin::dbg("GREYLISTING: disabled while linting");
++       return 0;
++    }
+     Mail::SpamAssassin::Plugin::dbg("GREYLISTING: called function");
+ 
+     $optionhash  =~ s/;/,/g;

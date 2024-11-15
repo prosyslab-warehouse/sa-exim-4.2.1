@@ -1,0 +1,32 @@
+sa-exim (4.2.1-14) unstable; urgency=low
+
+    If you are using sa-exim's greylisting plugin for SpamAssassin you may
+    want to review your setup. Previously the documentation recommended
+    running spamd as the "nobody" user. This is not a very good
+    recommendation as nobody/nogroup should be completely unprivileged and
+    thus not own anything. This version won't change the ownership of any
+    directories or files and won't try to fix your SpamAssassin
+    configuration, but if you haven't modified /etc/cron.d/greylistclean
+    it will be changed to run greylistclean as "Debian-exim", which won't
+    work if the greylisting data is owned by nobody:nogroup.
+
+ -- Magnus Holmgren <holmgren@debian.org>  Sun, 18 Sep 2011 23:19:53 +0200
+
+sa-exim (4.2.1-8) unstable; urgency=medium
+
+  * Since version 4.67-1, exim4 only exports those symbols that are part
+    of the official local_scan API. Unfortunately, sa-exim has all along
+    cheated and declared some "extern" variables by itself, something that
+    no longer works. For one of these, body_linecount, no workaround is
+    currently possible, meaning that it will not be updated if the message
+    body is rewritten (by way of SpamAssassin's report_safe together with
+    SARewriteBody: 1 in sa-exim.conf. This means that if you use
+    $body_linecount or $message_linecount in string expansions in your
+    Exim configuration, they will refer to the line count before rewriting
+    the message body.
+  
+    This change will hopefully be restored soon, either by extending the
+    local_scan API or by making Exim count the lines.
+
+ -- Magnus Holmgren <magnus@kibibyte.se>  Thu, 26 Apr 2007 16:22:49 +0200
+

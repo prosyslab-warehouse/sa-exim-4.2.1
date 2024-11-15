@@ -1,0 +1,258 @@
+                          GREYLISTING with SA-Exim
+                          ------------------------
+
+
+INTRODUCTION
+------------
+SA-Exim allows for intelligent greylisting by combining the idea of greylisting
+with Spam scores from SpamAssassin
+
+If you don't know what greylisting is, you should probably go read up there:
+http://projects.puremagic.com/greylisting/
+(note that this implementation works differently than the one described there)
+
+So, SA-Exim isn't just yet another greylisting implementation. By tying it
+into SA-Exim, and especially by running SA at SMTP time, you can do the
+following things:
+- do not bother greylisting people who send messages detected as spam by SA
+  (indeed, regular greylisting will accept mail from a spammer if he retries
+  or sends it from an open relay)
+  SA-Exim will never greylist, or whitelist a sender based on a mail clearly
+  marked as spam by SA.
+
+- do not delay mail from people who aren't spamming you (this one is the most
+  important feature of SA-Exim greylisting, as it removes the biggest
+  disadvantage linkes to greylisting)
+
+- only greylist (and maybe later whitelist) hosts that send you mail with
+  a certain SA score.
+
+
+IMPLEMENTATION
+--------------
+So how does this all work?
+SA comes with a patch for SA 2.x (and a module for SA 3.x) that does the
+following things:
+- add a greylisting rule which gets run at the very end, and where if
+  the score is already higher than a configured value, we do not bother
+  greylisting the host. We just return a rule failure, which doesn't
+  change the score and lets SA-Exim reject the mail as usual
+- if the score is lower than the "surely spam" threshold (shown as 11 in the
+  example below), check for a file in 
+  /var/spool/sa-exim/messageids/co/nn/ect/ip/envfrom/envto
+  - if it's there, check if it was written more than x seconds ago (1800s/30mn
+    in the example below)
+    - if so, change the status to whitelisted and return true so that SA applies
+      the whitelist negative score
+    - if not, simply increase counters, host is still greylisted 
+  - if the file is not there, create it
+- every x time (like 4 hours or two days), remove all greylist entries that
+  only saw one mail (i.e. still greylisted, not whitelisted yet).
+  This is done with a find cron job
+- every y time (like 1 week), remove whitelisted entries so that your filesystem
+  doesn't clutter up with hosts you're not going to hear from again in a while
+
+
+Then, you call the greylisting rule with this (in SA's local.cf)
+# reseval is a special eval which only runs after you have the result from
+# everything else (lets us not greylist a host that is sending spam, otherwise
+# this rule might set a sufficiently negative score that the next spam would
+# be allowed in)
+# Note the 'key' -> 'value'; syntax. It's a special hack to go through SA's
+# config parser. You need to keep that exact syntax
+# greylistsecs: how long you greylist a tuplet because whitelisting it
+# greylistnullfrom: set to 1 to also greylist mail with a null env from
+# greylistfourthbyte: keep the 4 bytes of the connecting host instead of 3
+header GREYLIST_ISWHITE reseval:greylisting("( 'dir' => '/var/spool/sa-exim/tuplets'; 'method' => 'dir'; 'greylistsecs' => '1800'; 'dontgreylistthreshold' => 11; 'connectiphdr' => 'X-SA-Exim-Connect-IP'; 'envfromhdr' => 'X-SA-Exim-Mail-From'; 'rcpttohdr' => 'X-SA-Exim-Rcpt-To'; 'greylistnullfrom' => 0; 'greylistfourthbyte' => 0 )")
+describe GREYLIST_ISWHITE The incoming server has been whitelisted for this rece
+ipient and sender
+score GREYLIST_ISWHITE  -1.5
+
+Note that SA greylisting depends on X-SA-Exim-Rcpt-To, so you have to ensure
+that SAmaxrcptlistlength is set to a reasonably high value (up to 8000) instead
+of the current default of 0 (you can remove the header in exim's system_filter
+or a transport if you don't want it to show in user's mails, see "privacy
+warning" in README)
+
+
+Now, in case you aren't confused yet, you get even more knobs to play with :)
+If a spammer resends you a spam until it gets whitelisted (or typically, it
+gets sent to a relay that resends it to you), even if you are setup to
+accept the spam at the point, you don't want to lower the SA score too much
+just because the mail was resent to you several times (i.e. a rather negative
+score for GREYLIST_ISWHITE). So, you can actually configure SA-Exim to temp
+reject messages on a much higher score than usual, if they don't have the
+GREYLIST_ISWHITE tag.
+
+In other words, let's say you have this in sa-exim.conf:
+SApermreject: 11.0
+SAtempreject: 3.0
+SAgreylistraisetempreject: 6.5
+
+If a mail comes in at less than 3.0, the SA patch/module remembers the sending
+server's connecting IP, the env from, and the rcpt to(s), and whitelists those.
+(those will be referred to as tuplets, one for each rcpt to)
+
+If the score is between 3.0 and 11.0,
+- if at least one of the tuplets is already whitelisted, SA applies the -1.5
+  score and yields an end score below 9.5, Now, at the same time, SAtempreject
+  is temporarily raised by 6.5, so everything under 9.5 is accepted, which 
+  basically means that the mail goes through.
+- if none of the tuplets are whitelisted, they get greylisted
+- if they are greylisted, they can get upgraded to whitelisted status if the
+  sending server has been trying for long enough (1800secs in the example given
+  above). At this point the same thing happens as in case #1 and the mail is
+  accepted
+
+If a tuplet that is going to be whitelisted or greylisted, already is, SA
+updates counters to let you run reports and anything else you want, like
+deciding if or when you'd like to expire the entry
+
+If by now you wonder why you would want to both decrease the SA score and
+increase the maximum score you'll accept mails on, the reason is as follows:
+You probably don't want to lower the SA score by 8 just because the tuplet
+is whitelisted (not only does it mess with the SA scoring of messages that used
+to be flagged as spam, but a spam with a score of 13.5 would then be lowered
+to 5.5, be temprejected, and be close to the accept range).
+Instead, giving an SA score of -1.5, a message with 13.5 becomes 12.0 and still
+gets rejected right away. You also do not overly (and artifically) lower the
+score of a message, just for SA-Exim's sake
+
+If you so wish, you can also give the SA rule a score of -0.1, and only
+dynamically raise the tempreject score for messages that are whitelisted.
+
+
+SCORE SETUP
+-----------
+It makes little sense to have
+SAtempreject + SAgreylistraisetempreject + SA GREYLIST_ISWHITE > SApermreject
+as there is little point to raise SAtempreject if the message that's
+whitelisted still gets refused by the SApermreject score
+
+As to whether you want to put more points into SA GREYLIST_ISWHITE or
+SAgreylistraisetempreject, this is your call, but as a general rule, you only
+want to change the SA score in a way that makes sense for spam scoring,
+as it similarly affects the score of all messages, whether SA-Exim sees them
+in the non spam range, tempreject range, or "this is spam that I would never
+let in" range.
+
+
+FILE SETUP
+----------
+Make very sure that the user that spamd runs as can traverse and write
+to /var/spool/sa-exim.
+
+Then, setup a cron job to delete tuplets that are older than 14 days for
+whitelisted entries, and 2 days for greylisted entries (or whatever
+values you fancy).
+Note that because this implementation does not systematically force the senders to resend you mail, unless they sent something that looks too much like spam,
+you will typically see few whitelisted entries, and those will either be 
+potential spam that was actually resent to you at least 30mn after the
+initial copy (or whatever value you setup in "header GREYLIST_ISWHITE"), or
+people who sent you several Emails (where the second Email will just happen to
+trigger a whitelisting).
+
+
+FILE SETUP
+----------
+You should install greylistclean.cron in /etc/cron.d/ on your system to
+call greylistclean and clean up greylisted entries and whitelisted entries
+that haven't been used in a while.
+You can optionally modify it to tweak the cleanup times.
+Note that you may need to tweak greylistclean.cron to match the user
+spamd runs as.
+
+
+SA PATCH (SA 2.x)
+-----------------
+For all this to work, you also need to patch SA with SA-greylist.diff
+from the source tar (or /usr/share/doc/sa-exim*/ for a precompiled package).
+This patch never made it to the main SA 2.x branch as the developers had mostly
+switched to 3.x where you can use plugins.
+If you still use SA 3.x, you can go to /usr/share/perl5/Mail (or wherever
+appropriate on your system), and run 
+patch -p0 -s < /path/to/sa-exim/SA-greylisting.diff
+Note that while the patch works, it will not be maintained anymore since 
+it is deprecated for the SA 3.x plugin
+
+
+SA PLUGIN (SA 3.x)
+------------------
+Newer versions of SpamAssassin support plugins, so there is no need to 
+patch SA anymore, you can just install the Greylisting.pm module on your
+system and get SA to use it
+This is how you call the module in SA 3.x (i.e. put this in your
+/etc/spamassassin/local.cf)
+
+# Note the 'key' -> 'value'; syntax. It's a special hack to go through SA's
+# config parser. You need to keep that exact syntax
+# greylistsecs: how long you greylist a tuplet because whitelisting it
+# greylistnullfrom: set to 1 to also greylist mail with a null env from
+# greylistfourthbyte: keep the 4 bytes of the connecting host instead of 3
+loadplugin Greylisting /usr/share/perl5/Mail/SpamAssassin/Plugin/Greylisting.pm
+header GREYLIST_ISWHITE eval:greylisting("( 'dir' => '/var/spool/sa-exim/tuplets'; 'method' => 'dir'; 'greylistsecs' => '1800'; 'dontgreylistthreshold' => 11; 'connectiphdr' => 'X-SA-Exim-Connect-IP'; 'envfromhdr' => 'X-SA-Exim-Mail-From'; 'rcpttohdr' => 'X-SA-Exim-Rcpt-To'; 'greylistnullfrom' => 1; 'greylistfourthbyte' => 0 )")
+describe GREYLIST_ISWHITE The incoming server has been whitelisted for this recipient and sender
+score GREYLIST_ISWHITE  -1.5
+# Run SpamAssassin last, after all other rules.
+# (lets us not greylist a host that is sending spam, otherwise this rule might
+# set a sufficiently negative score that the next spam would be allowed in)
+priority GREYLIST_ISWHITE 99999
+
+
+SA-EXIM NEW BEHAVIOR CONCERNS
+-----------------------------
+What greylisting changes as far as spam accepting or rejection is concerned:
+Once a tuplet has been whitelisted, spam from that host is more likely
+to be accepted until the tuplet expires. In the case of a mailing list,
+unless you run a find / rm based on the creation time and not the last
+modified time, you will then be a bit more likely to accept spam from
+that list.
+If this turns out to not be acceptable in your case, there isn't a whole
+lot you can do about this, except deleting greylist entries for the host
+from cron before they get promoted to whitelist.
+
+What you can do on top of the existing greylisting code:
+Parse the SA-Exim logs and if you get spam from an IP, you can decide
+to delete greylist entries in /var/spool/sa-exim/tuplets/IP or just
+/var/spool/sa-exim/tuplets/IP/envfrom
+This may not may not be a good thing if you receive the occasional spam
+from a mailing list as you'll then re-delay mail for that list, but then
+again, it will also remove whitelisting for a host that spammed you once
+with an Email that managed to get under the SA scoring radar
+
+
+GREYLISTING AND MXES
+--------------------
+Depending on your configuration, you may have realized that SA-Exim doesn't
+play very well with secondary MXes for your domain if they don't run SA-Exim
+too (for instance, you'd send a tempreject on spam and clog up your
+secondary, or maybe even teergrube it if you forgot to add your MX's IP
+in the do not teergrube list.
+For greylisting, it's even more simple:
+If your secondary MXes aren't running SA-Exim with greylisting, then
+greylisting's efficiency will be greatly reduced as most spammers will send
+their spams to your secondary MXes which will accept the mail for you,
+even if it's sent only once, and then your MXes will resend the spam to you
+until you accept it (rendering greylisting useless)
+
+Now, if your secondaries are running greylisting too, most mail will flow
+through with no delay whatsoever. However, in the worst case scenario, a mail
+that isn't spam, but triggers greylisting because its score is high enough to
+generate a tempreject, could be delayed up to twice the whitelisting time
+if it were to go to your secondary MX first (assuming your primary is
+unreachable or temporarily overloaded), and then be resent to your primary
+MX, which would trigger a second greylisting delay
+FIXME: implement a whitelist of sending IPs so that greylisting returns
+whitelisted right away
+
+
+SECURITY
+--------
+The greylisting function works around the SA parser by sending all the options
+as a hash inside a string. In turn, greylisting evals the said string.
+This is a security problem if you allow your users to run custom rules and it
+gives them access to run spamassassin as a user different from their own, or
+in a way that they otherwise wouldn't be able to.
+Do not run greylisting if this a problem for you (in the default SA/SA-Exim
+setup, this shouldn't be a concern since it doesn't even parse users' config
+files)

@@ -1,0 +1,69 @@
+# Translation of sa-exim debconf screen to French
+# Copyright (C) 2004-2009 Debian French l10n team <debian-l10n-french@lists.debian.org>
+# This file is distributed under the same license as the sa-exim package.
+#
+# Translators:
+# Eric Madesclair <eric-m@wanadoo.fr>, 2004
+# Christian Perrier <bubulle@debian.org>, 2009.
+msgid ""
+msgstr ""
+"Project-Id-Version: fr\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-02 07:25+0100\n"
+"PO-Revision-Date: 2009-06-10 00:08+0200\n"
+"Last-Translator: Christian Perrier <bubulle@debian.org>\n"
+"Language-Team: French <debian-l10n-french@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+#| msgid "Remove saved mails in spool directory?"
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr ""
+"Supprimer les courriers sauvegardés du répertoire d'attente (« spool ») de sa-"
+"exim ?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+#| msgid ""
+#| "There are some saved mails in subdirectories of /var/spool/sa-exim. "
+#| "Depending on the configuration sa-exim will save mails matching specific "
+#| "criterias (an error occured, rejected as spam, passed through although "
+#| "recognized as spam, ...) in subdirectories of /var/spool/sa-exim."
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"Plusieurs courriers sauvegardés existent dans les sous-répertoires de /var/"
+"spool/sa-exim. Selon la configuration, sa-exim sauvegarde les courriers qui "
+"correspondent à des critères spécifiques (p. ex. « an error occurred » -une "
+"erreur est survenue-, « rejected as spam » - rejeté comme spam -, « passed "
+"through although recognized as spam » - passé à travers, reconnu comme spam -) "
+"dans ces répertoires."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+"Veuillez choisir si vous souhaitez conserver ces courriers pour analyse "
+"ultérieure ou si vous préférez les supprimer maintenant."
+
+#~ msgid ""
+#~ "You can keep them for further analysis and later remove them manually or "
+#~ "decide to delete them now."
+#~ msgstr ""
+#~ "Vous pouvez les garder pour des analyses approfondies et les supprimer "
+#~ "par la suite ou vous pouvez décider de les effacer maintenant."
+
+#~ msgid "Should they be removed?"
+#~ msgstr "Vous pouvez les supprimer maintenant."

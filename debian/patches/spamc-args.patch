@@ -1,0 +1,120 @@
+Description: Changes related to the arguments sent to spamc, namely thst
+ we don't pass -d (SAspamcHost), -p (SAspamcPort), or -U (SAspamcSockPath) 
+ if those options aren't set, as well as the new parameter -u (SAspamcUser).
+Author: Magnus Holmgren <holmgren@debian.org>
+Bug-Debian: http://bugs.debian.org/506571
+
+--- sa-exim-4.2.1.orig/sa-exim.c
++++ sa-exim-4.2.1/sa-exim.c
+@@ -515,6 +513,7 @@ int local_scan(volatile int fd, uschar *
+     int pid;
+     int writefd[2];
+     int readfd[2];
++    char *spamc_argv[10];
+     int i;
+     /* These are the only values that we want working after the longjmp 
+      * The automatic ones can be clobbered, but we don't really care */
+@@ -550,8 +549,9 @@ int local_scan(volatile int fd, uschar *
+     static char *SAspamcpath=SPAMC_LOCATION;
+     static char *SAsafemesgidchars=SAFEMESGIDCHARS
+     static char *SAspamcSockPath=NULL;
+-    static char *SAspamcPort="783";
+-    static char *SAspamcHost="127.0.0.1";
++    static char *SAspamcPort=NULL;
++    static char *SAspamcHost=NULL;
++    static char *SAspamcUser=NULL;
+     static char *SAEximRunCond="0";
+     static char *SAEximRejCond="1";
+     static int SAmaxbody=250*1024;
+@@ -712,6 +721,7 @@ int local_scan(volatile int fd, uschar *
+ 	    M_CHECKFORSTR(SAspamcSockPath);
+ 	    M_CHECKFORSTR(SAspamcPort);
+ 	    M_CHECKFORSTR(SAspamcHost);
++	    M_CHECKFORSTR(SAspamcUser);
+ 	    M_CHECKFORSTR(SAEximRunCond);
+ 	    M_CHECKFORSTR(SAEximRejCond);
+ 	    M_CHECKFORVAR(SAmaxbody, "%d");
+@@ -914,6 +924,22 @@ int local_scan(volatile int fd, uschar *
+ 	ret=dup2(readfd[1],2);
+ 	CHECKERR(ret,"dup2 stderr",__LINE__);
+ 
++	i = 0;
++	spamc_argv[i++] = "spamc";
++	if (SAspamcUser && SAspamcUser[0])
++	{
++	    expand=expand_string(SAspamcUser);
++	    if (expand == NULL)
++	    {
++		log_write(0, LOG_MAIN | LOG_PANIC, "SA: SAspamcUser expansion failure on %s, will run as Exim user instead.", SAspamcUser);
++	    }
++	    else if (expand[0] != '\0')
++	    {
++		spamc_argv[i++] = "-u";
++		spamc_argv[i++] = expand;
++	    }
++	}
++
+ 	/* 
+          * I could implement the spamc protocol and talk to spamd directly
+          * instead of forking spamc, but considering the overhead spent
+@@ -924,17 +950,30 @@ int local_scan(volatile int fd, uschar *
+ 	/* Ok, we cheat, spamc cares about how big the whole message is and
+          * we only know about the body size, so I'll  give an extra 16K
+          * to account for any headers that can accompany the message */
++
++	spamc_argv[i++] = "-s";
++	spamc_argv[i++] = string_sprintf("%d", SAmaxbody+16384);
++
+ 	if(SAspamcSockPath)
+ 	{
+-	    ret=execl(SAspamcpath, "spamc", "-s", string_sprintf("%d", SAmaxbody+16384), "-U", SAspamcSockPath, NULL);
+-	    CHECKERR(ret,string_sprintf("exec %s", SAspamcpath),__LINE__);
++    	    spamc_argv[i++] = "-U";
++	    spamc_argv[i++] = SAspamcSockPath;
+ 	}
+ 	else
+ 	{
+-	    ret=execl(SAspamcpath, "spamc", "-s", string_sprintf("%d", SAmaxbody+16384), "-d", SAspamcHost, "-p", SAspamcPort, NULL);
+-	    CHECKERR(ret,string_sprintf("exec %s", SAspamcpath),__LINE__);
++	    if (SAspamcHost) {
++		spamc_argv[i++] = "-d";
++		spamc_argv[i++] = SAspamcHost;
++	    }
++	    if (SAspamcPort) {
++		spamc_argv[i++] = "-p";
++		spamc_argv[i++] = SAspamcPort;
++	    }
+ 	}
+-	
++	spamc_argv[i++] = NULL;
++
++	ret=execv(SAspamcpath, spamc_argv);
++	CHECKERR(ret,string_sprintf("exec %s", SAspamcpath),__LINE__);
+     }
+ 
+     if (SAEximDebug > 8)
+--- sa-exim-4.2.1.orig/sa-exim.conf
++++ sa-exim-4.2.1/sa-exim.conf
+@@ -49,11 +49,17 @@ SAspamcpath: /usr/bin/spamc
+ # you set it, it will override the two TCP connect options below
+ #SAspamcSockPath: /var/run/spamd.sock
+ 
+-# SAspamcHost / SAspamcPort: TCP socket where your spamd is listening
+-# Shown below are the defaults:
+-SAspamcHost: 127.0.0.1
+-SAspamcPort: 783
+-
++# SAspamcHost / SAspamcPort: TCP socket where your spamd is listening.
++# Default is to let spamc use any settings in spamc.conf.
++#SAspamcHost: 127.0.0.1
++#SAspamcPort: 783
++
++# SAspamcUser: The username passed to spamc. Some tricks are needed to 
++# decide on one user when there are many recipients. This string is of
++# course expanded. If unset or empty, spamc will use the user Exim 
++# runs as. We suggest that you decide what username to use in the ACLs
++# and set an ACL variable.
++#SAspamcUser: $acl_m2
+ 
+ # Exim configuration string to run before running SA against the message
+ # This decides whether SA gets run against the message or not.  This

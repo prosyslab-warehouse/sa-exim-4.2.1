@@ -1,0 +1,119 @@
+While I wrote SA-Exim after realizing that I didn't want to accept Spam in the
+first place, this package would not have been put together without the help
+and contributions of the following people:
+
+
+<ul>
+<li>Philip Hazel<BR>
+    We wouldn't have exim without him :-)
+
+<li>Justin Mason, Craig R Hughes, Dan Quinlan, and the rest of the SpamAssassin
+    crew<BR>
+
+<li>Derrick 'dman' Hudson<BR>
+    Early adopter, feedback, ideas, first integration with localscan_dlopen
+
+<li>David Woodhouse<BR>
+    Excellent original localscan_dlopen patch for exim 4
+    SIGCHLD patch (was set to ignore by exim)
+
+<li>Norm<BR>
+    Build patches and trailing slash problem for mkdir on netbsd
+
+<li>Patrice Fournier<BR>
+    Several suggestions, including adding the X-SA-Exim-Scanned header
+
+<li>Peter N Lewis<BR>
+    Spotted a buglet in lseek call
+
+<li>Robert Strickler<BR>
+    Suggested that I add teergrube support
+
+<li>Tim Jackson<BR>
+    Narrowed the problem with SA Exim 2.1 to a hang when we feed a message
+    that's too big to spamc and did a lot of research on the bug
+
+<li>Brian Kendig<BR>
+    Suggested the functionality behind X-SA-Exim-Rcpt-To:
+    Noted and requested logging changes
+
+<li>Paul Matthews<BR>
+    Reported string length problem with X-SA-Exim-Rcpt-To:
+
+<li>Chad Leigh<BR>
+    Reported that SA-Exim doesn't delete a X-Spam-Flag header in the original
+    mail if the local config decides that the mail isn't spam
+
+<li>Martin Balvers<BR>
+    Reported that 
+    SA: Action: teergrubed sender until full configured duration
+    logging wasn't consistent.
+    Author of http://nossie.addicts.nl/projects/sa-exim-stats/
+
+<li>Andreas Metzler<BR>
+    Has provided invaluable help by being the main maintainer of the exim4
+    debian package and doing most of the work for the sa-exim package, while
+    patiently helping me with my debian build questions
+
+<li>Richard Lithvall<BR>
+    Added the much requested SARewriteBody option for SA 2.50's report_safe
+    Also added SAPrependArchiveWithFrom option<BR>
+    Also added SAspamcSockPath for SA 2.60 and better
+
+<li>Justin F. Knotzke<BR>
+    Reported that Dec 31st 1969 isn't a good idea and upsets some MUAs like mutt
+
+<li>Norihisa Washitake<BR>
+    Pointed out that I should be using date -R to override foreign locales
+
+<li>Chirik<BR>
+    Made suggestions on increasing logging consistency
+    Gave example on how you can trigger mail scans without using headers
+    (using internal exim acl variables)
+
+<li>Ross Boylan<BR>
+    Suggestions for documentation tweaks
+
+<li>Sander Smeenk<BR>
+    Made sa-exim show up in Debian. Yeah! :)
+    Major doc diffs
+
+<li>Stéphane MANHES<BR>
+    Pointed out that greylisting requires X-SA-Exim-Rcpt-To:
+
+<li>John Horne<BR>
+    Reported crash on discard, due to the number of recipients being 0
+
+<li>Adam D. Barratt<BR>
+    Found the problem with sa-exim's indirect use of printf and causing a crash
+    in exim on 64 bit architectures, and gave a detailed explanation on what
+    happened and how to fix it
+
+<li>Jeffrey D. Carter<BR>
+    Suggested strchr instead of index for easier compilation.
+
+<li>Danilo Lotina F. &amp; Others<BR>
+    Suggested adding a destination host for spamc (I added a port too)
+
+<li>Cliff Hones<BR>
+    Reported that From mbox line was in an incorrect format
+
+<li>Jason John Schwarz<BR>
+    Reported compile problem inside the exim tree (i.e. without local_scan)
+
+<li>Kristopher Austin<BR>
+    Initial port of the SA patch to an SA 3.0 plugin
+
+<li>Adam Tilghman<BR>
+    Pointed out that I shouldn't be rewriting Content-Type headers if we don't
+    rewrite the body (and defang_mime is dead now)
+
+<li>Mark Lawrence<BR>
+    He is the author of the greylistclean cron job
+
+<li>Chris Morris<BR>
+    Reported the ealier tuplet deletion cronjob in shell as insecure
+
+<li>Your name here<BR>
+    If you contribute or if you did and I forgot your name (sorry, let me know)
+</ul>

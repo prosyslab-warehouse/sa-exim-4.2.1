@@ -1,0 +1,50 @@
+# Danish translation for sa-exim.
+# Copyright (C) 2010 sa-exim og nedenstående oversættere.
+# This file is distributed under the same license as the sa-exim package.
+# Claus Hindsgaul <claus_h@image.dk>, 2004.
+# Joe Hansen (joedalton2@yahoo.dk), 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-04-04 15:40+0200\n"
+"PO-Revision-Date: 2010-12-30 19:25+0200\n"
+"Last-Translator: Joe Hansen <joedalton2@yahoo.dk>\n"
+"Language-Team: Danish <debian-l10n-danish@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms:  nplurals=2; plural=(n != 1);\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr "Fjern gemt e-post fra sa-exims kømappe?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"Der er gemt e-post i mapperne under /var/spool/sa-exim. Afhængig af "
+"opsætningen vil sa-exim gemme e-post, der opfylder bestemte kriterier (der "
+"opstod en fejl, afvist som spam, lod brevet passere på trods af at det blev "
+"genkendt som spam,...) i disse mapper."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+"Vælg venligst om du ønsker at beholde denne e-post for yderligere analyse, "
+"eller om du ønsker at slette dem nu."
+
+

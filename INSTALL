@@ -1,0 +1,100 @@
+READ THIS FIRST
+---------------
+If you try to build with 'make' without editing the makefile for sa-exim to
+see the exim source, and if you haven't patched your exim source with 
+localscan_dlopen.patch, sa-exim will not build.
+This is normal, see the BUILDING section below
+
+This version of sa-exim now requires at least exim 4.11
+
+
+
+
+BUILDING
+--------
+The code can be compiled in two ways:
+
+0) Do not set LOCAL_SCAN_HAS_OPTIONS=yes in exim's Makefile. Leave the
+   default which is disabled.
+
+1) Unpack exim 4.11 or better, and overwrite src/local_scan.c with 
+   sa-exim.c. 
+   In the sa-exim distribution directory, type make sa-exim.h, and copy
+   it in the same place than sa-exim.c.
+   Rebuild exim, and you're done.
+   Note that if you do this, you are responsible for modifying variables
+   in sa-exim.c that would normally have been modified by the Makefile.
+   
+   This method might seem simpler, but it requires that you rebuild exim every
+   time you upgrade sa-exim.
+
+2) The better solution is to patch exim with localscan_dlopen.patch originally
+   from David Woodhouse (provided in this archive), and rebuild exim.
+   Here are details on how to patch exim if yours needs it (at least debian's
+   exim4 is prepatched, yours may be too).
+   Choose the patch for your exim version (Philip included the portion that 
+   sets LOCAL_SCAN_ABI_VERSION_MAJOR and LOCAL_SCAN_ABI_VERSION_MINOR in exim
+   4.20)
+   - localscan_dlopen_exim_4.20_or_better.patch
+   - localscan_dlopen_up_to_4.14.patch
+
+
+   What you gain from doing this is that sa-exim, or another local_scan module
+   can be plugged into exim without rebuilding exim itself (here too you need
+   exim 4.11 or better)
+
+   To build, you can edit EXIM_SRC in the Makefile and build sa-exim-x.y.so,
+   or I have also recently modified the build environment so that you can
+   now build sa-exim without having the exim sources.
+   You can look in eximinc/version to see which source I included. While this
+   should work for the forseable future, the exim local_scan API might change
+   one day and not building against the current exim sources could cause issues
+   (hopefully, at worst it will prevent sa-exim from using better functions in
+   newer versions of the local_scan API).
+   To be really safe, I modified the localscan_dlopen patch to include a
+   minor and major version number for the API. Philip has agreed to including
+   the piece of the patch that says which version of the API exim is using,
+   so it will be obvious in the future whether exim becomes potentially
+   incompatible with an older version of sa-exim. Note that when Philip adds
+   this small portion of the patch, you will have a resulting conflict if
+   you try to apply it again. This is obviously normal, just remove it :-)
+
+   Once you're done building, you can copy sa-exim-x.y.so and optionally the
+   dummy/test accept.so in /usr/lib/exim4/local_scan/, and add this to your
+   exim4.conf (at the beginning of the file)
+   #local_scan_path = /usr/lib/exim4/local_scan/accept.so
+   local_scan_path = /usr/lib/exim4/local_scan/sa-exim.so
+
+   If you are a package builder, note that you don't actually have
+   to edit the values in the Makefile, you can override them as such:
+   make SACONF=/etc/mail/sa-exim.conf LDFLAGS="-shared -fPIC"
+
+
+The following is mostly obsolete, but left here for info purposes
+-----------------------------------------------------------------
+I would also recommend to edit exim/src/config.h.defaults as such:
+#define STRING_SPRINTF_BUFFER_SIZE 32768
+The default value is a bit too small for some of the strings that we need to
+expand from SA.
+That said, I found out that exim then complaints that the headers
+it tries to add are too big even after I set "uschar buffer[32768];" in
+src/header.c.
+As a result, I haven't quite found out how to deal with more than 8KB worth
+of SpamAssassin headers, but it may not be a huge deal, 8KB headers are too
+long anyway. 
+I asked the SA guys not to output such huge headers and I wrote a patch
+to disable one of the "features" that outputs such huge headers.
+See: http://bugzilla.spamassassin.org/showattachment.cgi?attach_id=195
+This is included and turned on by default in Spamassassin 2.40 and later.
+
+
+INSTALL
+-------
+Copy sa-exim.conf to /etc/exim4 (or whatever you set SACONF to),
+and make sure to read it and edit the values to suit your environment.
+So that you don't make any mistakes, SAEximRunCond is turned off by default.
+This should force you to scan the docs before potentially shooting yourself
+in the foot :)
+
+See README for options
+

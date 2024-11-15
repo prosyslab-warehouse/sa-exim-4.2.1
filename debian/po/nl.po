@@ -1,0 +1,50 @@
+# Dutch translation of sa-exim debconf templates.
+# Copyright (C) 2007-2011 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the sa-exim package.
+# Bart Cornelis <cobaco@skolelinux.no>, 2007. 
+# Jeroen Schot <schot@a-eskwadraat.nl>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim 4.2.1-13\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-04-04 15:40+0200\n"
+"PO-Revision-Date: 2011-07-18 17:35+0200\n"
+"Last-Translator: Jeroen Schot <schot@a-eskwadraat.nl>\n"
+"Language-Team: Debian 10n Dutch <debian-l10n-dutch@lists.debian.org>\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr ""
+"Wilt u dat opgeslagen e-mails verwijderd worden uit sa-exim's spool-map?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"Er zijn een aantal opgeslagen e-mails in de submappen van /var/spool/sa-"
+"exim. Afhankelijk van de configuratie slaat sa-exim e-mails die aan "
+"specifieke criteria voldoen (bv. \"fout opgetreden\", \"geweigerd als spam"
+"\", \"doorgelaten maar gemarkeerd als spam\") op in submappen van /var/spool/"
+"sa-exim ."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+"Geef aan of u deze e-mails wilt bewaren voor verdere analyse of nu wilt "
+"verwijderen."

@@ -1,0 +1,72 @@
+# sa-exim po-debconf translation to Spanish
+# Copyright (C) 2004, 2006, 2009 Software in the Public Interest
+# This file is distributed under the same license as the sa-exim package.
+#
+# Changes:
+#   - Initial translation
+#       Rudy Godoy <rudy@kernel-panik.org>, 2006
+#
+#   - Updates
+#       Francisco Javier Cuadrado <fcocuadrado@gmail.com>, 2009
+#
+# Traductores, si no conocen el formato PO, merece la pena leer la
+# documentación de gettext, especialmente las secciones dedicadas a este
+# formato, por ejemplo ejecutando:
+#       info -n '(gettext)PO Files'
+#       info -n '(gettext)Header Entry'
+#
+# Equipo de traducción al español, por favor lean antes de traducir
+# los siguientes documentos:
+#
+#   - El proyecto de traducción de Debian al español
+#     http://www.debian.org/intl/spanish/coordinacion
+#     especialmente las notas de traducción en
+#     http://www.debian.org/intl/spanish/notas
+#
+#   - La guía de traducción de po's de debconf:
+#     /usr/share/doc/po-debconf/README-trans
+#     o http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim 4.2.1-12\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-04-04 15:40+0200\n"
+"PO-Revision-Date: 2009-08-13 08:54+0100\n"
+"Last-Translator: Francisco Javier Cuadrado <fcocuadrado@gmail.com>\n"
+"Language-Team: Debian l10n Spanish <debian-l10n-spanish@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+#| msgid "Remove saved mails in spool directory?"
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr "¿Desea eliminar los correos guardados en el directorio «spool»?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+#| msgid ""
+#| "There are some saved mails in subdirectories of /var/spool/sa-exim. "
+#| "Depending on the configuration sa-exim will save mails matching specific "
+#| "criterias (an error occured, rejected as spam, passed through although "
+#| "recognized as spam, ...) in subdirectories of /var/spool/sa-exim."
+msgid "There are some saved mails in subdirectories of /var/spool/sa-exim. Depending on the configuration, sa-exim may save mails matching specific criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed through although recognized as spam\") in these directories."
+msgstr "Existen algunos correos guardados en subdirectorios de «/var/spool/sa-exim». Dependiendo de la configuración, sa-exim guardará los correos que cumplan con un criterio específico (como «ha ocurrido un fallo», «rechazado como spam» o «aceptado aunque se ha reconocido como spam») en estos directorios."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Please choose whether you want to keep these mails for further analysis or delete them now."
+msgstr "Escoja si quiere guardar estos correos para un análisis posterior o si quiere borrarlos ahora."
+
+#~ msgid ""
+#~ "You can keep them for further analysis and later remove them manually or "
+#~ "decide to delete them now."
+#~ msgstr ""
+#~ "Puede conservarlos para un análisis posterior, y eliminarlos de forma "
+#~ "manual más tarde, o decidir eliminarlos ahora."
+

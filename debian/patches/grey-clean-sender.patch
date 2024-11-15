@@ -1,0 +1,16 @@
+Description: Simplify the sender address so that senders using VERP,
+ SRS, etc. hopefully won't be greylisted each and every time 
+Author: Magnus Holmgren <holmgren@debian.org>
+Bug-Debian: http://bugs.debian.org/347590
+
+--- sa-exim-4.2.1.orig/Greylisting.pm
++++ sa-exim-4.2.1/Greylisting.pm
+@@ -160,6 +160,8 @@ sub greylisting
+ 	    # work around bug in perl untaint in perl 5.8
+ 	    $envfrom=undef;
+ 	    $envfrom=$tmpvar;
++	    $envfrom =~ s/^([a-z0-9._]*)[^@]*/$1/i;
++
+ 	    $rcptto  =~ tr/!#%()*+,-.0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{|}~/_/c;
+ 	    $rcptto =~ /(.+)/;
+ 	    $tmpvar = ($1 or "");

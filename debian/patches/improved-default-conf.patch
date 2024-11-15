@@ -1,0 +1,52 @@
+Description: Improvements (in my opinion) of the default sa-exim.conf
+Author: Magnus Holmgren <holmgren@debian.org>
+
+--- sa-exim-4.2.1.orig/sa-exim.conf
++++ sa-exim-4.2.1/sa-exim.conf
+@@ -49,9 +49,19 @@ SAspamcpath: /usr/bin/spamc
+ # This decides whether SA gets run against the message or not.  This
+ # default will not reject messages if the message had SA headers but
+ # they weren't added by us.
+-SAEximRunCond: ${if and {{def:sender_host_address} {!eq {$sender_host_address}{127.0.0.1}} {!eq {$h_X-SA-Do-Not-Run:}{Yes}} } {1}{0}}
++SAEximRunCond: ${if and {{def:sender_host_address} {!eq {$sender_host_address}{127.0.0.1}} {!eq {$sender_host_address}{::1}}}}
++# If you want more detailed control over when to run SA, it's recommended
++# that you set an ACL variable indicating this from the acl section of
++# your Exim configuration file. The current maintainer sets acl_m0 to 
++# "noscan" if the sending host is localhost or has authenticated.
++#SAEximRunCond: ${if !eq{$acl_m0}{noscan}}
++# (This means exactly the same as ${if !eq{$acl_m0}{noscan} {true}{}}, 
++# where the empty string is considered false.)
++
++#----------------------------------------------------------------------
+ # Remove or comment out the following line to enable sa-exim
+ SAEximRunCond: 0
++#----------------------------------------------------------------------
+ 
+ # If and only if SAEximRunCond was true, and we did run SA, this
+ # expression decides whether we actually consider acting upon SAdevnull,
+@@ -70,10 +86,12 @@ SAEximRunCond: 0
+ # Use this to tag messages that you shouldn't reject (messages sent to
+ # abuse or postmaster for instance).
+ #
+-# X-SA-Do-Not-Rej should be set as a warn header if mail is sent to
+-# postmaster and abuse (in the RCPT ACL), this way you're not bouncing
+-# spam abuse reports sent to you. This is a RFC guideline.
+-SAEximRejCond: ${if !eq {$h_X-SA-Do-Not-Rej:}{Yes} {1}{0}}
++# As an example, set acl_m0 to "canreject" if a recipient other than
++# postmaster or abuse is encountered (and the sender isn't local). That
++# way, spammers can't circumvent blocking by sending to postmaster and 
++# 99 other recipients. (If acl_m0 is taken, you'll of course have to use
++# a different variable.
++#SAEximRejCond: ${if eq{$acl_m0}{canreject}}
+ 
+ 
+ # How much of the body we feed to spamassassin (in bytes)
+@@ -280,7 +298,7 @@ SApermrejectsave: /var/spool/exim/SAperm
+ # This is now a string (without quotes) that gets evaluated at runtime by exim
+ # but you can still assign a simple float value to it
+ # Default value is 2^20, which should disable the behavior
+-SAtempreject: 9.0
++#SAtempreject: 9.0
+ 
+ # You can optionally save or not save messages that matched the above rule
+ SAtemprejectSavCond: 1

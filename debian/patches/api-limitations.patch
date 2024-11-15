@@ -1,0 +1,87 @@
+Description: Changes needed because Exim now exports only the symbols
+ that are part of the official API.
+Author: Magnus Holmgren <holmgren@debian.org>
+Bug-Debian: http://bugs.debian.org/420443
+Bug-Debian: http://bugs.debian.org/420555
+Bug-Debian: http://bugs.debian.org/420736
+
+--- a/sa-exim.c
++++ b/sa-exim.c
+@@ -29,10 +29,7 @@ http://lists.merlins.org/lists/listinfo/
+ #include "sa-exim.h"
+ 
+ /* Exim includes */
+-#include "local_scan.h"
+-extern FILE   *smtp_out;               /* Exim's incoming SMTP output file */
+-extern int     body_linecount;         /* Line count in body */
+-extern uschar *primary_hostname;
++#include <local_scan.h>
+ 
+ #ifdef DLOPEN_LOCAL_SCAN
+ 
+@@ -602,6 +599,10 @@ int local_scan(volatile int fd, uschar *
+     /* Do not put a %s in there, or you'll segfault */
+     static char *SAmsgerror="Temporary local error while processing message, please contact postmaster";
+ 
++    /* This needs to be retrieved through expand_string in order
++       not to violate the API. */
++    uschar *primary_hostname=expand_string("$primary_hostname");
++
+     /* New values we read from spamassassin */
+     char *xspamstatus=NULL;
+     char *xspamflag=NULL;
+@@ -1229,18 +1230,20 @@ restart:
+ 	    }
+ 	}
+ 
++	
+ 	if (SAEximDebug > 1)
+ 	{
+ 	    log_write(0, LOG_MAIN, "SA: Debug2: body_linecount before SA: %d", body_linecount);
+ 	}
+ 
+ 	/* update global variable $body_linecount to reflect the new body size*/
+-	body_linecount = (line - 1);
++	if (body_linecount > 0) body_linecount = (line - 1); // Not updating if zero, indicating spool_wireformat
+ 
+ 	if (SAEximDebug > 1)
+ 	{
+ 	    log_write(0, LOG_MAIN, "SA: Debug2: body_linecount after SA: %d", body_linecount);
+ 	}
++
+     }
+ 
+     fclose((FILE *)readfh);
+@@ -1331,6 +1334,9 @@ restart:
+ 	
+ 	if (dorej && doteergrube)
+ 	{
++	    char *teergrubewaitstr;
++	    teergrubewaitstr=string_sprintf(SAmsgteergrubewait, spamstatus);
++
+ 	    /* By default, we'll only save temp bounces by message ID so
+ 	     * that when the same message is submitted several times, we
+ 	     * overwrite the same file on disk and not create a brand new
+@@ -1353,20 +1359,8 @@ restart:
+ 
+ 	    for (i=0;i<SAteergrubetime/10;i++)
+ 	    {
+-		char *str;
+-		
+-		/* Unfortunately, we can't use exim's smtp_printf because it
+-		 * doesn't return an error code if the write gets an EPIPE.
+-		 * So, we write ourselves, but this won't work if you have a
+-		 * TLS connection opened (that said, if you are teergrubing
+-		 * a TLS connection, it's probably a relay host, not a
+-		 * spammer, and in this case you should not teergrube a
+-		 * friendly relay, so basically we should be ok).
+-		 * If you do teergrube an SSL connection with the current
+-		 * code, you will break it, but that's acceptable */
+-		str=string_sprintf(string_sprintf("451- %s\r\n",SAmsgteergrubewait), spamstatus);
+-		fprintf(smtp_out, str);
+-		ret=fflush(smtp_out);
++		smtp_printf("451-%s\r\n", teergrubewaitstr);
++		ret=smtp_fflush();
+ 		if (ret != 0)
+ 		{
+ 		    log_write(0, LOG_MAIN | LOG_REJECT, "SA: Action: teergrubed sender for %d secs until it closed the connection: %s (scanned in %d/%d secs | Message-Id: %s). %s", i*10, spamstatus, scantime, fulltime, safemesgid, mailinfo);

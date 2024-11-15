@@ -1,0 +1,53 @@
+# Portuguese translation for sa-exim debconf messages.
+# Copyright (C) 2007 Pedro Ribeiro <p.m42.ribeiro@gmail.com>
+# This file is distributed under the same license as the sa-exim package.
+# Pedro Ribeiro <p.m42.ribeiro@gmail.com>, 2007-2009
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sa-exim 4.2.1-12\n"
+"Report-Msgid-Bugs-To: sa-exim@packages.debian.org\n"
+"POT-Creation-Date: 2009-04-04 15:40+0200\n"
+"PO-Revision-Date: 2009-03-09 19:58+0000\n"
+"Last-Translator: Pedro Ribeiro <p.m42.ribeiro@gmail.com>\n"
+"Language-Team: Portuguese <traduz@debianpt.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Remove saved mails in sa-exim's spool directory?"
+msgstr "Remover os mails guardados no directório de spool do sa-exim ?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"There are some saved mails in subdirectories of /var/spool/sa-exim. "
+"Depending on the configuration, sa-exim may save mails matching specific "
+"criteria (such as \"an error occurred\", \"rejected as spam\", or \"passed "
+"through although recognized as spam\") in these directories."
+msgstr ""
+"Existem alguns mails guardados em sub-directórios de /var/spool/sa-exim. "
+"Dependendo da configuração, o sa-exim guarda os mails que obedecem a certos "
+"critérios (tais como \"ocorreu um erro\", \"rejeitado como spam\", \"aceite "
+"mas marcada como spam\", ...) nesses directórios."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"Please choose whether you want to keep these mails for further analysis or "
+"delete them now."
+msgstr ""
+"Escolha, por favor, se quer manter estes mails para análise futura ou apagá-"
+"los agora."
+
+#~ msgid ""
+#~ "You can keep them for further analysis and later remove them manually or "
+#~ "decide to delete them now."
+#~ msgstr ""
+#~ "Pode mantê-las para análise posterior e removê-las mais tarde manualmente "
+#~ "ou apagá-las agora."
